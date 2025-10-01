@@ -10,12 +10,14 @@ export function getRoundedPath(path: number[][], _rd = 0.2) {
     let pt2 = [p2[0] + (p3[0] - p2[0]) * rd, p2[1] + (p3[1] - p2[1]) * rd];
 
     if (i === 0) {
-      res.push(`M ${pt1[0]} ${pt1[1]}`);
+      res.push(`M ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
     } else {
-      res.push(`L ${pt1[0]} ${pt1[1]}`);
+      res.push(`L ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
     }
 
-    res.push(`Q ${p2[0]} ${p2[1]} ${pt2[0]} ${pt2[1]}`);
+    res.push(
+      `Q ${svgnum(p2[0])} ${svgnum(p2[1])} ${svgnum(pt2[0])} ${svgnum(pt2[1])}`,
+    );
   }
 
   res.push("Z");

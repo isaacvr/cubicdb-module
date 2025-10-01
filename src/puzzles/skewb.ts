@@ -138,44 +138,38 @@ export function SKEWB(): PuzzleInterface {
       const BX2 = BX / 2;
       const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
 
-      return `
-      <path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath(
+      return `<path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath(
         [
           [rx, ry],
           [rx, ry + BX2],
           [rx + BX2, ry],
         ],
-      )}" />
-      <path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath(
+      )}" /><path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath(
         [
           [rx + BX2, ry],
           [rx + BX, ry + BX2],
           [rx + BX, ry],
         ],
-      )}" />
-      <path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath(
+      )}" /><path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath(
         [
           [rx + BX, ry + BX2],
           [rx + BX2, ry + BX],
           [rx + BX, ry + BX],
         ],
-      )}" />
-      <path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath(
+      )}" /><path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath(
         [
           [rx + BX2, ry + BX],
           [rx, ry + BX2],
           [rx, ry + BX],
         ],
-      )}" />
-      <path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath(
+      )}" /><path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath(
         [
           [rx + BX2, ry],
           [rx + BX, ry + BX2],
           [rx + BX2, ry + BX],
           [rx, ry + BX2],
         ],
-      )}" />
-      `;
+      )}" />`;
     };
 
     return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${drawFace(1, 0, faces.U)}${drawFace(0, 1, faces.L)}${drawFace(1, 1, faces.F)}${drawFace(2, 1, faces.R)}${drawFace(3, 1, faces.B)}${drawFace(1, 2, faces.D)}</svg>`;

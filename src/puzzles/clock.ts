@@ -13,7 +13,7 @@ function circle(
   omitStroke = false,
 ) {
   parts.push(
-    `<circle cx="${x}" cy="${y}" r="${rad * 0.95}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`,
+    `<circle cx="${svgnum(x)}" cy="${svgnum(y)}" r="${svgnum(rad * 0.95)}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`,
   );
 }
 
@@ -78,8 +78,9 @@ function drawSingleClock(
       lineWidth = 0.2;
 
       for (let p = 0, maxp = pts.length; p < maxp; p += 1) {
-        if (p === 0) pathParts.push(`M ${pts[p].x} ${pts[p].y}`);
-        else pathParts.push(`L ${pts[p].x} ${pts[p].y}`);
+        if (p === 0)
+          pathParts.push(`M ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
+        else pathParts.push(`L ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
       }
       pathParts.push("Z");
       parts.push(

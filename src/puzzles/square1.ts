@@ -1,5 +1,5 @@
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
-import { getRoundedPath } from "./utils";
+import { getRoundedPath, svgnum } from "./utils";
 import { Vector2D } from "./vector2d";
 
 export function SQUARE1(): PuzzleInterface {
@@ -214,7 +214,7 @@ export function SQUARE1(): PuzzleInterface {
       return res.join("");
     };
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${W * 0.175}" y="${W * 0.95}" width="${W * 0.239}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${W * 0.414}" y="${W * 0.95}" width="${W * (faces.E[0].l & 1 ? 0.412 : 0.239)}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${svgnum(W * 0.175)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * 0.239)}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${svgnum(W * 0.414)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
   };
 
   return sq1;
