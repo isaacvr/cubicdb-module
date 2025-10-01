@@ -17,7 +17,11 @@
     "rubik"
   ],
   "author": "Isaac Vega Rodríguez",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/isaacvr/cubicdb-module"
+  },
   "description": "",
   "devDependencies": {
     "@rollup/plugin-terser": "0.4.4",
