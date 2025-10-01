@@ -10,7 +10,7 @@ interface ScrambleOptions {
     prob?: number;
 }
 export declare function genImages(opts: ImageOptions[]): string[];
-export declare function getScramble(opts: ScrambleOptions[]): (string | {
+export declare function getScrambles(opts: ScrambleOptions[]): (string | {
     scramble: string;
     image: string;
 })[];
