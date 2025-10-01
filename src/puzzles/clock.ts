@@ -1,4 +1,5 @@
 import { PuzzleInterface } from "./constants";
+import { svgnum } from "./utils";
 import { CENTER, DOWN, FRONT, Vector3D } from "./vector3d";
 
 let lineWidth = 0.4;
@@ -9,11 +10,10 @@ function circle(
   y: number,
   rad: number,
   col: string,
-  omitStroke = false
+  omitStroke = false,
 ) {
   parts.push(
-    `<circle cx="${x}" cy="${y}" r="${rad * 0.95}" fill="${col}" stroke-width="${lineWidth}"
-      ${!omitStroke ? `stroke="${col}"` : ""} />`
+    `<circle cx="${x}" cy="${y}" r="${rad * 0.95}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`,
   );
 }
 
@@ -26,7 +26,7 @@ function drawSingleClock(
   PINS: any,
   BLACK: string,
   WHITE: string,
-  GRAY: string
+  GRAY: string,
 ) {
   const W = RAD * 0.582491582491582;
   const RAD_CLOCK = RAD * 0.2020202020202;
@@ -43,9 +43,11 @@ function drawSingleClock(
     new Vector3D(0.0, 0.0),
     new Vector3D(-0.0599, 0.2551),
     new Vector3D(-0.1491, 0.4056),
-  ].map(v => v.mul(RAD_CLOCK));
+  ].map((v) => v.mul(RAD_CLOCK));
 
-  const circles = [new Vector3D(0.1672), new Vector3D(0.1254)].map(v => v.mul(RAD_CLOCK));
+  const circles = [new Vector3D(0.1672), new Vector3D(0.1254)].map((v) =>
+    v.mul(RAD_CLOCK),
+  );
 
   const R_PIN = circles[0].x * 2.3;
   lineWidth = 0.4;
@@ -68,7 +70,9 @@ function drawSingleClock(
       const ANCHOR = new Vector3D(X + W * i, Y + W * j);
       const angId = MAT[j + 1][i + 1];
       const ang = (angId * TAU) / 12;
-      const pts = arrow.map(v => v.rotate(CENTER, FRONT, PI + ang).add(ANCHOR));
+      const pts = arrow.map((v) =>
+        v.rotate(CENTER, FRONT, PI + ang).add(ANCHOR),
+      );
       const pathParts: string[] = [];
 
       lineWidth = 0.2;
@@ -79,7 +83,7 @@ function drawSingleClock(
       }
       pathParts.push("Z");
       parts.push(
-        `<path d="${pathParts.join(" ")}" stroke="${BLACK}" stroke-width="${0.2}" fill="${BLACK}" />`
+        `<path d="${pathParts.join(" ")}" stroke="${BLACK}" stroke-width="${0.2}" fill="${BLACK}" />`,
       );
 
       lineWidth = 0.4;
@@ -88,7 +92,13 @@ function drawSingleClock(
       circle(parts, ANCHOR.x, ANCHOR.y, circles[1].x, WHITE);
 
       for (let a = 0; a < 12; a += 1) {
-        const pt = ANCHOR.add(DOWN.mul(RAD_CLOCK + BORDER / 2).rotate(CENTER, FRONT, (a * TAU) / 12));
+        const pt = ANCHOR.add(
+          DOWN.mul(RAD_CLOCK + BORDER / 2).rotate(
+            CENTER,
+            FRONT,
+            (a * TAU) / 12,
+          ),
+        );
         const r = (circles[0].x / 4) * (a ? 1 : 1.6);
         const c = a ? WHITE : "#ff0000";
         circle(parts, pt.x, pt.y, r, c);
@@ -97,16 +107,24 @@ function drawSingleClock(
       if (i <= 0 && j <= 0) {
         const val = PINS[(j + 1) * 2 + i + 1];
         circle(parts, ANCHOR.x + W / 2, ANCHOR.y + W / 2, R_PIN, GRAY);
-        circle(parts, ANCHOR.x + W / 2, ANCHOR.y + W / 2, R_PIN * 0.7, val ? "#181818" : GRAY);
+        circle(
+          parts,
+          ANCHOR.x + W / 2,
+          ANCHOR.y + W / 2,
+          R_PIN * 0.7,
+          val ? "#181818" : GRAY,
+        );
       }
     }
   }
 }
 
 function clockImage(cube: PuzzleInterface, DIM: number) {
-  const W = DIM * 2.2;
+  const W = svgnum(DIM * 2.2);
   const PINS1 = cube.raw[0];
-  const PINS2 = cube.raw[0].map((e: any, p: number) => !PINS1[((p >> 1) << 1) + 1 - (p & 1)]);
+  const PINS2 = cube.raw[0].map(
+    (e: any, p: number) => !PINS1[((p >> 1) << 1) + 1 - (p & 1)],
+  );
   const MAT = cube.raw[1];
   const RAD = DIM / 2;
 
@@ -119,10 +137,7 @@ function clockImage(cube: PuzzleInterface, DIM: number) {
   drawSingleClock(parts, RAD, RAD, RAD, MAT[0], PINS2, BLACK, WHITE, GRAY);
   drawSingleClock(parts, RAD, W - RAD, RAD, MAT[1], PINS1, WHITE, BLACK, GRAY);
 
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${DIM}">
-  ${parts.join("")}
-</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${DIM}">${parts.join("")}</svg>`;
 }
 
 export function CLOCK(): PuzzleInterface {

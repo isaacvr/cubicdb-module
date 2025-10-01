@@ -18,21 +18,21 @@ npm install cubicdb-module
 #### ESM / TypeScript
 
 ```ts
-import { getScramble, genImages, setSeed, getSeed } from "cubicdb-module";
+import { getScrambles, genImages, setSeed, getSeed } from "cubicdb-module";
 ```
 
 #### CommonJS
 
 ```js
-const { getScramble, genImages, setSeed, getSeed } = require("cubicdb-module");
+const { getScrambles, genImages, setSeed, getSeed } = require("cubicdb-module");
 ```
 
 ## 🔀 Generate Scrambles
 
 ```ts
-import { getScramble } from "cubicdb-module";
+import { getScrambles } from "cubicdb-module";
 
-const scrambles = getScramble([
+const scrambles = getScrambles([
   { scrambler: "333", length: 20 },
   { scrambler: "222", length: 11 },
 ]);
@@ -46,9 +46,9 @@ console.log(scrambles);
 You can use the [CubicDB](https://cubicdb.netlify.app) image generator with the scrambler.
 
 ```ts
-import { getScramble } from "cubicdb-module";
+import { getScrambles } from "cubicdb-module";
 
-const withImages = getScramble([
+const withImages = getScrambles([
   { scrambler: "333", length: 20, image: true },
   { scrambler: "222", length: 11, image: true },
   { scrambler: "222", length: 11 },
@@ -69,13 +69,13 @@ console.log(withImages);
 Scrambles can be made **deterministic** by setting a seed. It uses a CSPRNG (Cryptographically Secure Pseudo-Random Number Generator), ensuring high quality of the scrambles.
 
 ```ts
-import { setSeed, getSeed, getScramble } from "cubicdb-module";
+import { setSeed, getSeed, getScrambles } from "cubicdb-module";
 
 // Set a custom seed
 setSeed(147, "cubicdb-module-seed");
 
 // Generate reproducible scrambles
-const scrambles = getScramble([{ scrambler: "333", length: 20 }]);
+const scrambles = getScrambles([{ scrambler: "333", length: 20 }]);
 
 console.log(scrambles[0]);
 // R2 U2 R U2 B2 R B2 R' B2 R2 U F U' L' F' D2 B F' D'

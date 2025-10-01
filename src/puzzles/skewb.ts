@@ -33,7 +33,7 @@ export function SKEWB(): PuzzleInterface {
     NF: FaceName[],
     ND: FaceName[],
     NL: FaceName[],
-    NB: FaceName[]
+    NB: FaceName[],
   ) {
     faces.U = NU;
     faces.R = NR;
@@ -44,7 +44,7 @@ export function SKEWB(): PuzzleInterface {
   }
 
   function pick(arr: FaceName[], indexes: number[]): FaceName[] {
-    return indexes.map(n => arr[n]);
+    return indexes.map((n) => arr[n]);
   }
 
   const cycles: Record<string, (dir: number) => void> = {
@@ -56,7 +56,9 @@ export function SKEWB(): PuzzleInterface {
         const NF = faces.F.map((v, p) => (p === 2 ? faces.L[3] : v));
         const ND = [faces.D[0], ...pick(faces.B, [2, 3, 0, 4])];
         const NL = faces.L.map((v, p) => (p === 3 ? faces.U[1] : v));
-        const NB = pick(faces.R, [3, 0, 1, 2, 4]).map((v, p) => (p === 1 ? faces.B[1] : v));
+        const NB = pick(faces.R, [3, 0, 1, 2, 4]).map((v, p) =>
+          p === 1 ? faces.B[1] : v,
+        );
         update(NU, NR, NF, ND, NL, NB);
       }
     },
@@ -66,9 +68,15 @@ export function SKEWB(): PuzzleInterface {
       for (let i = 0; i < times; i += 1) {
         const NU = faces.U.map((v, p) => (p === 3 ? faces.B[2] : v));
         const NR = faces.R.map((v, p) => (p === 3 ? faces.U[3] : v));
-        const NF = pick(faces.L, [3, 1, 1, 2, 4]).map((v, p) => (p === 1 ? faces.F[1] : v));
-        const ND = pick(faces.F, [3, 0, 1, 2, 4]).map((v, p) => (p === 2 ? faces.D[2] : v));
-        const NL = pick(faces.D, [0, 3, 0, 1, 4]).map((v, p) => (p === 0 ? faces.L[0] : v));
+        const NF = pick(faces.L, [3, 1, 1, 2, 4]).map((v, p) =>
+          p === 1 ? faces.F[1] : v,
+        );
+        const ND = pick(faces.F, [3, 0, 1, 2, 4]).map((v, p) =>
+          p === 2 ? faces.D[2] : v,
+        );
+        const NL = pick(faces.D, [0, 3, 0, 1, 4]).map((v, p) =>
+          p === 0 ? faces.L[0] : v,
+        );
         const NB = faces.B.map((v, p) => (p === 2 ? faces.R[3] : v));
         update(NU, NR, NF, ND, NL, NB);
       }
@@ -77,12 +85,16 @@ export function SKEWB(): PuzzleInterface {
     U: (dir: number) => {
       const times = ((dir % 3) + 3) % 3;
       for (let i = 0; i < times; i += 1) {
-        const NU = pick(faces.B, [1, 2, 0, 0, 4]).map((v, p) => (p === 2 ? faces.U[2] : v));
+        const NU = pick(faces.B, [1, 2, 0, 0, 4]).map((v, p) =>
+          p === 2 ? faces.U[2] : v,
+        );
         const NR = faces.R.map((v, p) => (p === 1 ? faces.D[3] : v));
         const NF = faces.F.map((v, p) => (p === 0 ? faces.R[1] : v));
         const ND = faces.D.map((v, p) => (p === 3 ? faces.F[0] : v));
         const NL = faces.U.map((v, p) => (p === 2 ? faces.L[2] : v));
-        const NB = pick(faces.L, [3, 0, 1, 0, 4]).map((v, p) => (p === 3 ? faces.B[3] : v));
+        const NB = pick(faces.L, [3, 0, 1, 0, 4]).map((v, p) =>
+          p === 3 ? faces.B[3] : v,
+        );
         update(NU, NR, NF, ND, NL, NB);
       }
     },
@@ -94,8 +106,12 @@ export function SKEWB(): PuzzleInterface {
         const NR = faces.R.map((v, p) => (p === 2 ? faces.F[3] : v));
         const NF = faces.F.map((v, p) => (p === 3 ? faces.U[0] : v));
         const ND = faces.L.map((v, p) => (p === 1 ? faces.D[1] : v));
-        const NL = pick(faces.B, [3, 0, 1, 2, 4]).map((v, p) => (p === 1 ? faces.L[1] : v));
-        const NB = pick(faces.D, [0, 2, 3, 0, 4]).map((v, p) => (p === 0 ? faces.B[0] : v));
+        const NL = pick(faces.B, [3, 0, 1, 2, 4]).map((v, p) =>
+          p === 1 ? faces.L[1] : v,
+        );
+        const NB = pick(faces.D, [0, 2, 3, 0, 4]).map((v, p) =>
+          p === 0 ? faces.B[0] : v,
+        );
         update(NU, NR, NF, ND, NL, NB);
       }
     },
@@ -103,7 +119,7 @@ export function SKEWB(): PuzzleInterface {
 
   const moveMap = "FURLBfrlbxyz";
   skewb.move = function (moves: any[]) {
-    moves.forEach(mv => {
+    moves.forEach((mv) => {
       cycles[moveMap[mv[0]]](mv[1]);
     });
   };
@@ -120,47 +136,49 @@ export function SKEWB(): PuzzleInterface {
       const ry = by * BOX + BOX_OFFSET;
       const BX = BOX * BOX_FACTOR;
       const BX2 = BX / 2;
-      const cols = fn.map(c => STANDARD_PALETTE[FACE_COLOR[c]]);
+      const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
 
       return `
-      <path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath([
-        [rx, ry],
-        [rx, ry + BX2],
-        [rx + BX2, ry],
-      ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath([
-        [rx + BX2, ry],
-        [rx + BX, ry + BX2],
-        [rx + BX, ry],
-      ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath([
-        [rx + BX, ry + BX2],
-        [rx + BX2, ry + BX],
-        [rx + BX, ry + BX],
-      ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath([
-        [rx + BX2, ry + BX],
-        [rx, ry + BX2],
-        [rx, ry + BX],
-      ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath([
-        [rx + BX2, ry],
-        [rx + BX, ry + BX2],
-        [rx + BX2, ry + BX],
-        [rx, ry + BX2],
-      ])}" />
+      <path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath(
+        [
+          [rx, ry],
+          [rx, ry + BX2],
+          [rx + BX2, ry],
+        ],
+      )}" />
+      <path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath(
+        [
+          [rx + BX2, ry],
+          [rx + BX, ry + BX2],
+          [rx + BX, ry],
+        ],
+      )}" />
+      <path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath(
+        [
+          [rx + BX, ry + BX2],
+          [rx + BX2, ry + BX],
+          [rx + BX, ry + BX],
+        ],
+      )}" />
+      <path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath(
+        [
+          [rx + BX2, ry + BX],
+          [rx, ry + BX2],
+          [rx, ry + BX],
+        ],
+      )}" />
+      <path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath(
+        [
+          [rx + BX2, ry],
+          [rx + BX, ry + BX2],
+          [rx + BX2, ry + BX],
+          [rx, ry + BX2],
+        ],
+      )}" />
       `;
     };
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">
-      ${drawFace(1, 0, faces.U)}
-      ${drawFace(0, 1, faces.L)}
-      ${drawFace(1, 1, faces.F)}
-      ${drawFace(2, 1, faces.R)}
-      ${drawFace(3, 1, faces.B)}
-      ${drawFace(1, 2, faces.D)}
-    </svg>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${drawFace(1, 0, faces.U)}${drawFace(0, 1, faces.L)}${drawFace(1, 1, faces.F)}${drawFace(2, 1, faces.R)}${drawFace(3, 1, faces.B)}${drawFace(1, 2, faces.D)}</svg>`;
   };
 
   return skewb;

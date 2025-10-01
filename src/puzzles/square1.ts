@@ -95,7 +95,7 @@ export function SQUARE1(): PuzzleInterface {
   };
 
   sq1.move = function (moves: any[]) {
-    moves.forEach(mv => {
+    moves.forEach((mv) => {
       if (mv[0] === 0) cycles.slash();
       else if (mv[0] === 1) cycles.U(mv[1]);
       else if (mv[0] === 2) cycles.D(mv[1]);
@@ -140,14 +140,14 @@ export function SQUARE1(): PuzzleInterface {
       OFF: number,
       OX: number,
       OY: number,
-      my: number
+      my: number,
     ): number[][] => {
-      return path.map(c =>
+      return path.map((c) =>
         new Vector2D(c[0], c[1])
           .sub(REF)
           .rot(my * OFF)
           .add(new Vector2D(REF.x + OX, REF.y + OY))
-          .toArr()
+          .toArr(),
       );
     };
 
@@ -160,13 +160,19 @@ export function SQUARE1(): PuzzleInterface {
       for (let i = 0, maxi = fc.length; i < maxi; i += 1) {
         const pc = fc[i];
         const OFF = acc * ANG + (pc.l === 1 ? ANG : 0);
-        const paths = [convertPath(pc.l === 1 ? EPath(my) : CPath(my), REF, OFF, OX, OY, my)];
+        const paths = [
+          convertPath(pc.l === 1 ? EPath(my) : CPath(my), REF, OFF, OX, OY, my),
+        ];
         if (pc.l === 1) {
           const EP1 = EPath(my)
             .slice(1)
             .reverse()
-            .map(c => new Vector2D(c[0], c[1]).sub(REF).mul(LFactor).add(REF).toArr());
-          paths.push(convertPath([...EPath(my).slice(1), ...EP1], REF, OFF, OX, OY, my));
+            .map((c) =>
+              new Vector2D(c[0], c[1]).sub(REF).mul(LFactor).add(REF).toArr(),
+            );
+          paths.push(
+            convertPath([...EPath(my).slice(1), ...EP1], REF, OFF, OX, OY, my),
+          );
         } else {
           const pos = [
             [1, 3],
@@ -175,12 +181,23 @@ export function SQUARE1(): PuzzleInterface {
 
           if (my < 0) pos.reverse();
 
-          pos.forEach(p => {
+          pos.forEach((p) => {
             const EP1 = CPath(my)
               .slice(p[0], p[1])
               .reverse()
-              .map(c => new Vector2D(c[0], c[1]).sub(REF).mul(LFactor).add(REF).toArr());
-            paths.push(convertPath([...CPath(my).slice(p[0], p[1]), ...EP1], REF, OFF, OX, OY, my));
+              .map((c) =>
+                new Vector2D(c[0], c[1]).sub(REF).mul(LFactor).add(REF).toArr(),
+              );
+            paths.push(
+              convertPath(
+                [...CPath(my).slice(p[0], p[1]), ...EP1],
+                REF,
+                OFF,
+                OX,
+                OY,
+                my,
+              ),
+            );
           });
         }
         acc += pc.l;
@@ -188,24 +205,16 @@ export function SQUARE1(): PuzzleInterface {
           paths
             .map(
               (path, p) =>
-                `<path d="${getRoundedPath(path, 0.15)}" fill="${getColor(fc[i].c[p])}" stroke="black" stroke-width="2" />`
+                `<path d="${getRoundedPath(path, 0.15)}" fill="${getColor(fc[i].c[p])}" stroke="black" stroke-width="2" />`,
             )
-            .join("")
+            .join(""),
         );
       }
 
       return res.join("");
     };
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">
-  ${getFace(faces.U, 0, 0)}
-  ${getFace(faces.D, 0, W, -1)}
-  <rect x="${W * 0.175}" y="${W * 0.95}" width="${W * 0.239}" height="${W * 0.09}"
-    rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${getColor("F")} />
-  <rect x="${W * 0.414}" y="${W * 0.95}" width="${W * (faces.E[0].l & 1 ? 0.412 : 0.239)}" height="${W * 0.09}"
-    rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} />
-</svg>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${W * 0.175}" y="${W * 0.95}" width="${W * 0.239}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${W * 0.414}" y="${W * 0.95}" width="${W * (faces.E[0].l & 1 ? 0.412 : 0.239)}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
   };
 
   return sq1;

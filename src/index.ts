@@ -24,6 +24,8 @@ interface ScrambleOptions {
 }
 
 export function genImages(opts: ImageOptions[]) {
+  if (!Array.isArray(opts)) return [];
+
   const res: string[] = [];
 
   for (let i = 0, maxi = opts.length; i < maxi; i += 1) {
@@ -38,7 +40,9 @@ export function genImages(opts: ImageOptions[]) {
   return res;
 }
 
-export function getScramble(opts: ScrambleOptions[]) {
+export function getScrambles(opts: ScrambleOptions[]) {
+  if (!Array.isArray(opts)) return [];
+
   return opts.map((op) => {
     let scr = cstimerGetScramble(op.scrambler, op.length || 0, op.prob || -1);
 
