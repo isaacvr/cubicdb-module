@@ -1,0 +1,31 @@
+{
+  "name": "cubicdb-module",
+  "version": "1.0.0",
+  "main": "dist/index.cjs",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.umd.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "scramble",
+    "cubicdb",
+    "image",
+    "puzzle",
+    "rubik"
+  ],
+  "author": "Isaac Vega Rodríguez",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@rollup/plugin-terser": "0.4.4",
+    "@rollup/plugin-typescript": "12.1.4",
+    "cstimer_module": "0.1.4",
+    "prettier": "^3.6.2",
+    "rollup": "4.52.3",
+    "tslib": "^2.8.1",
+    "typescript": "5.9.2"
+  }
+}
