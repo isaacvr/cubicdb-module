@@ -2953,12 +2953,12 @@ function getRoundedPath(path, _rd = 0.2) {
         let pt1 = [p2[0] + (p1[0] - p2[0]) * rd, p2[1] + (p1[1] - p2[1]) * rd];
         let pt2 = [p2[0] + (p3[0] - p2[0]) * rd, p2[1] + (p3[1] - p2[1]) * rd];
         if (i === 0) {
-            res.push(`M ${pt1[0]} ${pt1[1]}`);
+            res.push(`M ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
         }
         else {
-            res.push(`L ${pt1[0]} ${pt1[1]}`);
+            res.push(`L ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
         }
-        res.push(`Q ${p2[0]} ${p2[1]} ${pt2[0]} ${pt2[1]}`);
+        res.push(`Q ${svgnum(p2[0])} ${svgnum(p2[1])} ${svgnum(pt2[0])} ${svgnum(pt2[1])}`);
     }
     res.push("Z");
     return res.join(" ");
@@ -12077,7 +12077,7 @@ const DOWN = new Vector3D(0, -1, 0, true);
 
 let lineWidth = 0.4;
 function circle(parts, x, y, rad, col, omitStroke = false) {
-    parts.push(`<circle cx="${x}" cy="${y}" r="${rad * 0.95}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`);
+    parts.push(`<circle cx="${svgnum(x)}" cy="${svgnum(y)}" r="${svgnum(rad * 0.95)}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`);
 }
 function drawSingleClock(parts, RAD, X, Y, MAT, PINS, BLACK, WHITE, GRAY) {
     const W = RAD * 0.582491582491582;
@@ -12116,9 +12116,9 @@ function drawSingleClock(parts, RAD, X, Y, MAT, PINS, BLACK, WHITE, GRAY) {
             lineWidth = 0.2;
             for (let p = 0, maxp = pts.length; p < maxp; p += 1) {
                 if (p === 0)
-                    pathParts.push(`M ${pts[p].x} ${pts[p].y}`);
+                    pathParts.push(`M ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
                 else
-                    pathParts.push(`L ${pts[p].x} ${pts[p].y}`);
+                    pathParts.push(`L ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
             }
             pathParts.push("Z");
             parts.push(`<path d="${pathParts.join(" ")}" stroke="${BLACK}" stroke-width="${0.2}" fill="${BLACK}" />`);
@@ -12858,34 +12858,28 @@ function SKEWB() {
             const BX = BOX * BOX_FACTOR;
             const BX2 = BX / 2;
             const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
-            return `
-      <path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath([
+            return `<path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath([
                 [rx, ry],
                 [rx, ry + BX2],
                 [rx + BX2, ry],
-            ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath([
+            ])}" /><path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath([
                 [rx + BX2, ry],
                 [rx + BX, ry + BX2],
                 [rx + BX, ry],
-            ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath([
+            ])}" /><path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath([
                 [rx + BX, ry + BX2],
                 [rx + BX2, ry + BX],
                 [rx + BX, ry + BX],
-            ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath([
+            ])}" /><path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath([
                 [rx + BX2, ry + BX],
                 [rx, ry + BX2],
                 [rx, ry + BX],
-            ])}" />
-      <path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath([
+            ])}" /><path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath([
                 [rx + BX2, ry],
                 [rx + BX, ry + BX2],
                 [rx + BX2, ry + BX],
                 [rx, ry + BX2],
-            ])}" />
-      `;
+            ])}" />`;
         };
         return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${drawFace(1, 0, faces.U)}${drawFace(0, 1, faces.L)}${drawFace(1, 1, faces.F)}${drawFace(2, 1, faces.R)}${drawFace(3, 1, faces.B)}${drawFace(1, 2, faces.D)}</svg>`;
     };
@@ -13093,7 +13087,7 @@ function SQUARE1() {
             }
             return res.join("");
         };
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${W * 0.175}" y="${W * 0.95}" width="${W * 0.239}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${W * 0.414}" y="${W * 0.95}" width="${W * (faces.E[0].l & 1 ? 0.412 : 0.239)}" height="${W * 0.09}" rx="${W * 0.02}" ry="${W * 0.02}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
+        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${svgnum(W * 0.175)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * 0.239)}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${svgnum(W * 0.414)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
     };
     return sq1;
 }
