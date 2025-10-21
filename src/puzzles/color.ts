@@ -133,7 +133,10 @@ export class Color {
     const str = s.replace(/\s/g, "");
 
     if (rgbaReg.test(str)) {
-      const [r, g, b, a] = str.replace(rgbaReg, "$1 $2 $3 $4").split(" ").map(Number);
+      const [r, g, b, a] = str
+        .replace(rgbaReg, "$1 $2 $3 $4")
+        .split(" ")
+        .map(Number);
       this.fromRGBA(r, g, b, a);
     } else if (rgbReg.test(str)) {
       const [r, g, b] = str.replace(rgbReg, "$1 $2 $3").split(" ").map(Number);
@@ -142,29 +145,30 @@ export class Color {
       const [r, g, b, a] = str
         .replace(hexaReg, "$1 $2 $3 $4")
         .split(" ")
-        .map(e => parseInt(e, 16));
+        .map((e) => parseInt(e, 16));
       this.fromRGBA(r, g, b, a);
     } else if (hexReg.test(str)) {
       const [r, g, b] = str
         .replace(hexReg, "$1 $2 $3")
         .split(" ")
-        .map(e => parseInt(e, 16));
+        .map((e) => parseInt(e, 16));
       this.fromRGB(r, g, b);
     } else if (hexa1Reg.test(str)) {
       const [r, g, b, a] = str
         .replace(hexa1Reg, "$1$1 $2$2 $3$3 $4$4")
         .split(" ")
-        .map(e => parseInt(e, 16));
+        .map((e) => parseInt(e, 16));
       this.fromRGBA(r, g, b, a);
     } else if (hex1Reg.test(str)) {
       const [r, g, b] = str
         .replace(hex1Reg, "$1$1 $2$2 $3$3")
         .split(" ")
-        .map(e => parseInt(e, 16));
+        .map((e) => parseInt(e, 16));
       this.fromRGB(r, g, b);
     } else {
-      console.log("S: ", s);
-      throw new TypeError("String format other than rgb() or rgba() not supported yet");
+      throw new TypeError(
+        "String format other than rgb() or rgba() not supported yet",
+      );
     }
   }
 
@@ -176,15 +180,15 @@ export class Color {
 
   clone() {
     const res = new Color(0, 0, 0);
-    res.color = this.color.map(e => e);
+    res.color = this.color.map((e) => e);
     return res;
   }
 
   toHex(alpha: boolean = true): string {
-    const t = this.color.map(e => e);
+    const t = this.color.map((e) => e);
     t[3] = ~~adjust(t[3] * 255);
     if (!alpha) t.pop();
-    return "#" + t.map(e => ("00" + e.toString(16)).substr(-2, 2)).join("");
+    return "#" + t.map((e) => ("00" + e.toString(16)).substr(-2, 2)).join("");
   }
 
   toNumber(): number {
@@ -242,6 +246,6 @@ export class Color {
   }
 
   toArray(): number[] {
-    return this.color.map(e => e);
+    return this.color.map((e) => e);
   }
 }

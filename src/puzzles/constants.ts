@@ -81,28 +81,6 @@ export const PuzzleTypeName = [
 
 export declare type PuzzleType = (typeof PuzzleTypeName)[number];
 
-export const ScramblerList = [
-  "222so",
-  "333",
-  "333fm",
-  "333ni",
-  "333mbf",
-  "333oh",
-  "444bld",
-  "444wca",
-  "555wca",
-  "555bld",
-  "666wca",
-  "777wca",
-  "clkwca",
-  "mgmp",
-  "pyrso",
-  "skbso",
-  "sqrs",
-] as const;
-
-export type Scrambler = (typeof ScramblerList)[number];
-
 const COLORS: Record<string, string> = {
   green: "rgb(0,157,84)",
   red: "rgb(220,66,47)",
@@ -311,7 +289,14 @@ export const MISC = [
   ["fto"],
   ["133"],
   ["sfl"],
-];
+] as const;
+
+type MISCType = typeof MISC;
+type MISCValues = MISCType[number] extends infer T
+  ? T extends readonly string[]
+    ? T[number]
+    : T
+  : never;
 
 export type AScramblers =
   | (typeof R222)[number]
@@ -326,7 +311,8 @@ export type AScramblers =
   | (typeof CLCK)[number]
   | (typeof MEGA)[number]
   | (typeof KILO)[number]
-  | (typeof GIGA)[number];
+  | (typeof GIGA)[number]
+  | MISCValues;
 
 const OPTS: PuzzleOptions[] = [
   { type: "rubik", order: [2] },
@@ -404,7 +390,7 @@ for (let i = 0, maxi = MODES.length; i < maxi; i += 1) {
 }
 
 for (let i = 0, maxi = MISC.length; i < maxi; i += 1) {
-  let m = MISC[i];
+  let m = MISC[i] as string | string[];
   if (Array.isArray(m)) {
     m.forEach((m) => options.set(m, OPTS_MISC[i]));
   } else {

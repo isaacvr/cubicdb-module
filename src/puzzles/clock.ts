@@ -2,31 +2,41 @@ import { PuzzleInterface } from "./constants";
 import { svgnum } from "./utils";
 import { CENTER, DOWN, FRONT, Vector3D } from "./vector3d";
 
-let lineWidth = 0.4;
+const F = 0.1;
 
 function circle(
-  parts: string[],
+  parts: string[][],
   x: number,
   y: number,
   rad: number,
   col: string,
   omitStroke = false,
 ) {
-  parts.push(
-    `<circle cx="${svgnum(x)}" cy="${svgnum(y)}" r="${svgnum(rad * 0.95)}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`,
-  );
+  parts.push([
+    col,
+    !omitStroke ? col : "",
+    `<circle cx="${svgnum(x * F)}" cy="${svgnum(y * F)}" r="${svgnum(rad * F * 0.95)}"/>`,
+  ]);
 }
 
 function drawSingleClock(
-  parts: string[],
+  parts: string[][],
   RAD: number,
   X: number,
   Y: number,
   MAT: any,
   PINS: any,
-  BLACK: string,
-  WHITE: string,
-  GRAY: string,
+  {
+    BLACK,
+    WHITE,
+    GRAY,
+    RED,
+  }: {
+    BLACK: string;
+    WHITE: string;
+    GRAY: string;
+    RED: string;
+  },
 ) {
   const W = RAD * 0.582491582491582;
   const RAD_CLOCK = RAD * 0.2020202020202;
@@ -50,14 +60,16 @@ function drawSingleClock(
   );
 
   const R_PIN = circles[0].x * 2.3;
-  lineWidth = 0.4;
 
   circle(parts, X, Y, RAD, WHITE);
 
-  for (let i = -1; i < 2; i += 2) {
-    for (let j = -1; j < 2; j += 2) {
-      circle(parts, X + W * i, Y + W * j, RAD_CLOCK + BORDER + BORDER1, WHITE);
-      circle(parts, X + W * i, Y + W * j, RAD_CLOCK + BORDER, BLACK);
+  for (let p = 0; p <= 1; p++) {
+    const rads = [RAD_CLOCK + BORDER + BORDER1, RAD_CLOCK + BORDER];
+    const cols = [WHITE, BLACK];
+    for (let i = -1; i < 2; i += 2) {
+      for (let j = -1; j < 2; j += 2) {
+        circle(parts, X + W * i, Y + W * j, rads[p], cols[p]);
+      }
     }
   }
 
@@ -75,33 +87,33 @@ function drawSingleClock(
       );
       const pathParts: string[] = [];
 
-      lineWidth = 0.2;
-
       for (let p = 0, maxp = pts.length; p < maxp; p += 1) {
         if (p === 0)
-          pathParts.push(`M ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
-        else pathParts.push(`L ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
+          pathParts.push(`M ${svgnum(pts[p].x * F)} ${svgnum(pts[p].y * F)}`);
+        else
+          pathParts.push(`L ${svgnum(pts[p].x * F)} ${svgnum(pts[p].y * F)}`);
       }
       pathParts.push("Z");
-      parts.push(
-        `<path d="${pathParts.join(" ")}" stroke="${BLACK}" stroke-width="${0.2}" fill="${BLACK}" />`,
-      );
-
-      lineWidth = 0.4;
+      parts.push([
+        BLACK,
+        BLACK,
+        `<path d="${pathParts.join(" ")}" stroke-width="${0.02}" />`,
+      ]);
 
       circle(parts, ANCHOR.x, ANCHOR.y, circles[0].x, BLACK);
       circle(parts, ANCHOR.x, ANCHOR.y, circles[1].x, WHITE);
 
-      for (let a = 0; a < 12; a += 1) {
+      for (let a = 1; a <= 12; a += 1) {
+        const na = a % 12;
         const pt = ANCHOR.add(
           DOWN.mul(RAD_CLOCK + BORDER / 2).rotate(
             CENTER,
             FRONT,
-            (a * TAU) / 12,
+            (na * TAU) / 12,
           ),
         );
-        const r = (circles[0].x / 4) * (a ? 1 : 1.6);
-        const c = a ? WHITE : "#ff0000";
+        const r = (circles[0].x / 4) * (na ? 1 : 1.6);
+        const c = na ? WHITE : RED;
         circle(parts, pt.x, pt.y, r, c);
       }
 
@@ -132,13 +144,82 @@ function clockImage(cube: PuzzleInterface, DIM: number) {
   const BLACK = cube.palette.black;
   const WHITE = cube.palette.white;
   const GRAY = cube.palette.gray;
+  const RED = "red";
 
-  const parts: string[] = [];
+  const parts: string[][] = [];
 
-  drawSingleClock(parts, RAD, RAD, RAD, MAT[0], PINS2, BLACK, WHITE, GRAY);
-  drawSingleClock(parts, RAD, W - RAD, RAD, MAT[1], PINS1, WHITE, BLACK, GRAY);
+  drawSingleClock(parts, RAD, RAD, RAD, MAT[0], PINS2, {
+    BLACK,
+    WHITE,
+    GRAY,
+    RED,
+  });
+  drawSingleClock(parts, RAD, W - RAD, RAD, MAT[1], PINS1, {
+    BLACK: WHITE,
+    WHITE: BLACK,
+    GRAY,
+    RED,
+  });
 
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${DIM}">${parts.join("")}</svg>`;
+  const fillClass: any = {
+    [BLACK]: "f0",
+    [WHITE]: "f1",
+    [GRAY]: "f2",
+    [RED]: "f3",
+    "": "",
+  };
+  const strokeClass: any = {
+    [BLACK]: "s0",
+    [WHITE]: "s1",
+    [GRAY]: "s2",
+    [RED]: "s3",
+    "": "",
+  };
+
+  const cls = parts.map((p) => {
+    // let pos = p[2].indexOf(" ");
+    // let tagName = p[2].slice(0, pos);
+
+    let classes: string[] = [];
+
+    if (p[0]) classes.push(fillClass[p[0]]);
+    if (p[1]) classes.push(strokeClass[p[1]]);
+
+    return classes
+      .map((c) => c.trim())
+      .filter((c) => c)
+      .join(" ");
+
+    // return tagName + `${cl ? ` class="${cl}"` : ""}` + p[2].slice(pos);
+  });
+
+  let groups: string[][] = parts.reduce((acc, e, p) => {
+    if (p == 0) return [[cls[p], e[2]]];
+    if (cls[p] === acc[acc.length - 1][0]) {
+      acc[acc.length - 1].push(e[2]);
+    } else {
+      acc.push([cls[p], e[2]]);
+    }
+    return acc;
+  }, [] as string[][]);
+
+  return [
+    `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}">`,
+    `<style>circle{stroke-width:0.1;}${
+      [BLACK, WHITE, GRAY, RED].map((c, p) => `.f${p}{fill:${c};}`).join("") +
+      [BLACK, WHITE, GRAY, RED].map((c, p) => `.s${p}{stroke:${c};}`).join("")
+    }</style>`,
+    groups
+      .map((g) => {
+        if (g.length === 2) {
+          let pos = g[1].indexOf(" ");
+          return g[1].slice(0, pos) + ` class="${g[0]}"` + g[1].slice(pos);
+        }
+        return `<g class="${g[0]}">${g.slice(1).join("")}</g>`;
+      })
+      .join(""),
+    `</svg>`,
+  ].join("");
 }
 
 export function CLOCK(): PuzzleInterface {

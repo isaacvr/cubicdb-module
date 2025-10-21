@@ -1,3 +1,4 @@
+import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
 import { getRoundedPath } from "./utils";
 
@@ -130,49 +131,80 @@ export function SKEWB(): PuzzleInterface {
     const H = BOX * 3;
     const BOX_FACTOR = 0.9;
     const BOX_OFFSET = (BOX * (1 - BOX_FACTOR)) / 2;
+    const classMap: Map<string, string[]> = new Map();
 
     const drawFace = (bx: number, by: number, fn: FaceName[]) => {
       const rx = bx * BOX + BOX_OFFSET;
       const ry = by * BOX + BOX_OFFSET;
       const BX = BOX * BOX_FACTOR;
       const BX2 = BX / 2;
-      const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
-
-      return `<path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath(
+      // const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
+      [
         [
-          [rx, ry],
-          [rx, ry + BX2],
-          [rx + BX2, ry],
+          fn[0],
+          `<path d="${getRoundedPath([
+            [rx, ry],
+            [rx, ry + BX2],
+            [rx + BX2, ry],
+          ])}" />`,
         ],
-      )}" /><path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath(
         [
-          [rx + BX2, ry],
-          [rx + BX, ry + BX2],
-          [rx + BX, ry],
+          fn[1],
+          `<path d="${getRoundedPath([
+            [rx + BX2, ry],
+            [rx + BX, ry + BX2],
+            [rx + BX, ry],
+          ])}" />`,
         ],
-      )}" /><path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath(
         [
-          [rx + BX, ry + BX2],
-          [rx + BX2, ry + BX],
-          [rx + BX, ry + BX],
+          fn[2],
+          `<path d="${getRoundedPath([
+            [rx + BX, ry + BX2],
+            [rx + BX2, ry + BX],
+            [rx + BX, ry + BX],
+          ])}" />`,
         ],
-      )}" /><path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath(
         [
-          [rx + BX2, ry + BX],
-          [rx, ry + BX2],
-          [rx, ry + BX],
+          fn[3],
+          `<path d="${getRoundedPath([
+            [rx + BX2, ry + BX],
+            [rx, ry + BX2],
+            [rx, ry + BX],
+          ])}" />`,
         ],
-      )}" /><path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath(
         [
-          [rx + BX2, ry],
-          [rx + BX, ry + BX2],
-          [rx + BX2, ry + BX],
-          [rx, ry + BX2],
+          fn[4],
+          `<path d="${getRoundedPath([
+            [rx + BX2, ry],
+            [rx + BX, ry + BX2],
+            [rx + BX2, ry + BX],
+            [rx, ry + BX2],
+          ])}" />`,
         ],
-      )}" />`;
+      ].forEach(([c, path]) => {
+        if (!classMap.has(c)) {
+          classMap.set(c, [path]);
+        } else {
+          classMap.get(c)!.push(path);
+        }
+      });
     };
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${drawFace(1, 0, faces.U)}${drawFace(0, 1, faces.L)}${drawFace(1, 1, faces.F)}${drawFace(2, 1, faces.R)}${drawFace(3, 1, faces.B)}${drawFace(1, 2, faces.D)}</svg>`;
+    drawFace(1, 0, faces.U);
+    drawFace(0, 1, faces.L);
+    drawFace(1, 1, faces.F);
+    drawFace(2, 1, faces.R);
+    drawFace(3, 1, faces.B);
+    drawFace(1, 2, faces.D);
+
+    return [
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
+      `<style>g{stroke:black;stroke-width:1;}</style>`,
+      ...Array.from(classMap.entries()).map(([c, paths]) => {
+        return `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[c as FaceName]]).toHex(false)}">${paths.join("")}</g>`;
+      }),
+      `</svg>`,
+    ].join("");
   };
 
   return skewb;

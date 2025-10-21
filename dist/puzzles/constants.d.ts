@@ -22,8 +22,6 @@ export interface IPuzzleOrder {
 }
 export declare const PuzzleTypeName: readonly ["rubik", "icarry", "skewb", "square1", "pyraminx", "axis", "fisher", "ivy", "clock", "megaminx", "mirror", "dino", "rex", "redi", "mixup", "pyramorphix", "gear", "dreidel", "bandaged222", "bicube", "square2", "pandora", "ultimateSkewb", "pyraminxCrystal", "tetraminx", "meierHalpernPyramid", "sq1Star", "windmill", "helicopter", "supersquare1", "fto", "timemachine", "masterskewb", "void", "diamondcube", "axis44", "fisher44", "redibarrel", "twisty33", "ghost", "barrel33"];
 export declare type PuzzleType = (typeof PuzzleTypeName)[number];
-export declare const ScramblerList: readonly ["222so", "333", "333fm", "333ni", "333mbf", "333oh", "444bld", "444wca", "555wca", "555bld", "666wca", "777wca", "clkwca", "mgmp", "pyrso", "skbso", "sqrs"];
-export type Scrambler = (typeof ScramblerList)[number];
 declare const COLORS: Record<string, string>;
 export declare type ColorName = keyof typeof COLORS;
 export declare const STANDARD_PALETTE: {
@@ -67,7 +65,9 @@ export declare const CLCK: readonly ["clkwca", "clk", "clkwca", "clko", "clkc", 
 export declare const MEGA: readonly ["mgmp", "mgmc", "mgmo", "minx2g", "mlsll", "mgmll", "mgmpll"];
 export declare const KILO: readonly ["klmso", "klmp"];
 export declare const GIGA: readonly ["giga"];
-export declare const MISC: (string | string[])[];
-export type AScramblers = (typeof R222)[number] | (typeof R333)[number] | (typeof R444)[number] | (typeof R555)[number] | (typeof R666)[number] | (typeof R777)[number] | (typeof PYRA)[number] | (typeof SKWB)[number] | (typeof SQR1)[number] | (typeof CLCK)[number] | (typeof MEGA)[number] | (typeof KILO)[number] | (typeof GIGA)[number];
+export declare const MISC: readonly [readonly ["r3", "r3ni"], "r234w", "r2345w", "r23456w", "r234567w", "r234", "r2345", "r23456", "r234567", "sq2", "bic", readonly ["gearso", "gearo", "gear"], readonly ["redim", "redi"], readonly ["ivy", "ivyo", "ivyso"], readonly ["prcp", "prco"], readonly ["heli"], readonly ["888"], readonly ["999"], readonly ["101010"], readonly ["111111"], readonly ["mpyr"], readonly ["223"], readonly ["233"], readonly ["334"], readonly ["336"], readonly ["ssq1t"], readonly ["fto"], readonly ["133"], readonly ["sfl"]];
+type MISCType = typeof MISC;
+type MISCValues = MISCType[number] extends infer T ? T extends readonly string[] ? T[number] : T : never;
+export type AScramblers = (typeof R222)[number] | (typeof R333)[number] | (typeof R444)[number] | (typeof R555)[number] | (typeof R666)[number] | (typeof R777)[number] | (typeof PYRA)[number] | (typeof SKWB)[number] | (typeof SQR1)[number] | (typeof CLCK)[number] | (typeof MEGA)[number] | (typeof KILO)[number] | (typeof GIGA)[number] | MISCValues;
 export declare const options: Map<string, PuzzleOptions | PuzzleOptions[]>;
 export {};

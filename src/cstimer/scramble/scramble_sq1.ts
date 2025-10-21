@@ -65,7 +65,8 @@ function FullCube_getParity(obj) {
   cnt = 0;
   obj.arr[0] = FullCube_pieceAt(obj, 0);
   for (i = 1; i < 24; ++i) {
-    FullCube_pieceAt(obj, i) != obj.arr[cnt] && (obj.arr[++cnt] = FullCube_pieceAt(obj, i));
+    FullCube_pieceAt(obj, i) != obj.arr[cnt] &&
+      (obj.arr[++cnt] = FullCube_pieceAt(obj, i));
   }
   p = 0;
   for (a = 0; a < 16; ++a) {
@@ -95,7 +96,11 @@ function FullCube_getShapeIdx(obj) {
   dlx |= dlx >> 6;
   dlx = (dlx & 15) | ((dlx >> 12) & 48);
   return Shape_getShape2Idx(
-    (FullCube_getParity(obj) << 24) | (ulx << 18) | (urx << 12) | (dlx << 6) | drx
+    (FullCube_getParity(obj) << 24) |
+      (ulx << 18) |
+      (urx << 12) |
+      (dlx << 6) |
+      drx,
   );
 }
 
@@ -205,7 +210,8 @@ function FullCube_randomCube(indice?) {
 
 function FullCube() {}
 
-let _ = (FullCube_FullCube__Ljava_lang_String_2V.prototype = FullCube.prototype);
+let _ = (FullCube_FullCube__Ljava_lang_String_2V.prototype =
+  FullCube.prototype);
 _.dl = 10062778;
 _.dr = 14536702;
 _.ml = 0;
@@ -224,7 +230,7 @@ function Search_init2(obj) {
   ml = obj.Search_sq.ml;
   prun = Math.max(
     SquarePrun[(obj.Search_sq.edgeperm << 1) | ml],
-    SquarePrun[(obj.Search_sq.cornperm << 1) | ml]
+    SquarePrun[(obj.Search_sq.cornperm << 1) | ml],
   );
   for (i = prun; i < obj.Search_maxlen2; ++i) {
     if (
@@ -237,7 +243,7 @@ function Search_init2(obj) {
         ml,
         i,
         obj.Search_length1,
-        0
+        0,
       )
     ) {
       for (j = 0; j < i; ++j) {
@@ -342,7 +348,17 @@ function Search_phase1(obj, shape, prunvalue, maxl, depth, lm) {
   return false;
 }
 
-function Search_phase2(obj, edge, corner, topEdgeFirst, botEdgeFirst, ml, maxl, depth, lm) {
+function Search_phase2(
+  obj,
+  edge,
+  corner,
+  topEdgeFirst,
+  botEdgeFirst,
+  ml,
+  maxl,
+  depth,
+  lm,
+) {
   let botEdgeFirstx, cornerx, edgex, m, prun1, prun2, topEdgeFirstx;
   if (maxl == 0 && !topEdgeFirst && botEdgeFirst) {
     return true;
@@ -365,7 +381,7 @@ function Search_phase2(obj, edge, corner, topEdgeFirst, botEdgeFirst, ml, maxl, 
           1 - ml,
           maxl - 1,
           depth + 1,
-          0
+          0,
         )
       ) {
         return true;
@@ -392,7 +408,7 @@ function Search_phase2(obj, edge, corner, topEdgeFirst, botEdgeFirst, ml, maxl, 
             ml,
             maxl - 1,
             depth + 1,
-            1
+            1,
           )
         ) {
           return true;
@@ -430,7 +446,7 @@ function Search_phase2(obj, edge, corner, topEdgeFirst, botEdgeFirst, ml, maxl, 
             ml,
             maxl - 1,
             depth + 1,
-            2
+            2,
           )
         ) {
           return true;
@@ -455,9 +471,15 @@ function Search_solution(obj, c) {
   let shape;
   obj.Search_c = c;
   shape = FullCube_getShapeIdx(c);
-  for (obj.Search_length1 = ShapePrun[shape]; obj.Search_length1 < 100; ++obj.Search_length1) {
+  for (
+    obj.Search_length1 = ShapePrun[shape];
+    obj.Search_length1 < 100;
+    ++obj.Search_length1
+  ) {
     obj.Search_maxlen2 = Math.min(32 - obj.Search_length1, 17);
-    if (Search_phase1(obj, shape, ShapePrun[shape], obj.Search_length1, 0, -1)) {
+    if (
+      Search_phase1(obj, shape, ShapePrun[shape], obj.Search_length1, 0, -1)
+    ) {
       break;
     }
   }
@@ -514,7 +536,9 @@ function Shape_bottomMove(obj) {
 
 function Shape_getIdx(obj) {
   let ret;
-  ret = (binarySearch(Shape_ShapeIdx, (obj.top << 12) | obj.bottom) << 1) | obj.Shape_parity;
+  ret =
+    (binarySearch(Shape_ShapeIdx, (obj.top << 12) | obj.bottom) << 1) |
+    obj.Shape_parity;
   return ret;
 }
 
@@ -552,7 +576,22 @@ function Shape_getShape2Idx(shp) {
 }
 
 function Shape_init() {
-  let count, depth, dl, done, done0, dr, i, idx, m, s, ul, ur, value, p1, p3, temp;
+  let count,
+    depth,
+    dl,
+    done,
+    done0,
+    dr,
+    i,
+    idx,
+    m,
+    s,
+    ul,
+    ur,
+    value,
+    p1,
+    p3,
+    temp;
   count = 0;
   for (i = 0; i < 28561; ++i) {
     dr = Shape_halflayer[i % 13];
@@ -632,7 +671,12 @@ _ = Shape_Shape.prototype = Shape.prototype;
 _.bottom = 0;
 _.Shape_parity = 0;
 _.top = 0;
-let Shape_BottomMove, Shape_ShapeIdx, ShapePrun, Shape_TopMove, Shape_TwistMove, Shape_halflayer;
+let Shape_BottomMove,
+  Shape_ShapeIdx,
+  ShapePrun,
+  Shape_TopMove,
+  Shape_TwistMove,
+  Shape_halflayer;
 
 let Square_$clinitRet = false;
 
@@ -745,11 +789,12 @@ function binarySearch(sortedArray, key) {
 }
 
 const cspcases: any[] = [
-  0, 1, 3, 18, 19, 1004, 1005, 1006, 1007, 1008, 1009, 1011, 1015, 1016, 1018, 1154, 1155, 1156,
-  1157, 1158, 1159, 1161, 1166, 1168, 424, 425, 426, 427, 428, 429, 431, 436, 95, 218, 341, 482,
-  528, 632, 1050, 342, 343, 345, 346, 348, 353, 223, 487, 533, 535, 1055, 219, 225, 483, 489, 639,
-  1051, 1057, 486, 1054, 1062, 6, 21, 34, 46, 59, 71, 144, 157, 182, 305, 7, 22, 35, 47, 60, 72,
-  145, 158, 183, 306, 8, 23, 36, 48, 61, 73, 146, 159, 184, 307,
+  0, 1, 3, 18, 19, 1004, 1005, 1006, 1007, 1008, 1009, 1011, 1015, 1016, 1018,
+  1154, 1155, 1156, 1157, 1158, 1159, 1161, 1166, 1168, 424, 425, 426, 427, 428,
+  429, 431, 436, 95, 218, 341, 482, 528, 632, 1050, 342, 343, 345, 346, 348,
+  353, 223, 487, 533, 535, 1055, 219, 225, 483, 489, 639, 1051, 1057, 486, 1054,
+  1062, 6, 21, 34, 46, 59, 71, 144, 157, 182, 305, 7, 22, 35, 47, 60, 72, 145,
+  158, 183, 306, 8, 23, 36, 48, 61, 73, 146, 159, 184, 307,
 ];
 
 let CSPInitRet = false;
@@ -882,10 +927,11 @@ const cspfilter = [
   "Line-x222",
 ];
 const cspprobs = [
-  16, 16, 16, 10, 16, 24, 16, 24, 16, 24, 16, 16, 4, 24, 16, 48, 32, 48, 32, 48, 32, 32, 48, 16, 48,
-  32, 48, 16, 48, 32, 32, 48, 36, 48, 72, 72, 48, 48, 72, 48, 36, 72, 48, 48, 72, 32, 48, 16, 32,
-  48, 16, 32, 48, 48, 16, 48, 48, 36, 72, 36, 72, 96, 96, 72, 96, 72, 72, 72, 72, 24, 48, 64, 64,
-  48, 64, 48, 48, 48, 48, 16, 24, 32, 32, 24, 32, 24, 24, 24, 24, 8,
+  16, 16, 16, 10, 16, 24, 16, 24, 16, 24, 16, 16, 4, 24, 16, 48, 32, 48, 32, 48,
+  32, 32, 48, 16, 48, 32, 48, 16, 48, 32, 32, 48, 36, 48, 72, 72, 48, 48, 72,
+  48, 36, 72, 48, 48, 72, 32, 48, 16, 32, 48, 16, 32, 48, 48, 16, 48, 48, 36,
+  72, 36, 72, 96, 96, 72, 96, 72, 72, 72, 72, 24, 48, 64, 64, 48, 64, 48, 48,
+  48, 48, 16, 24, 32, 32, 24, 32, 24, 24, 24, 24, 8,
 ];
 
 const search = new Search_Search();
@@ -898,7 +944,6 @@ export function square1SolverGetRandomScramble() {
 }
 
 function square1CubeShapeParityScramble(type: any, length: any, cases: any) {
-  console.log("SQ1 CSP: ", type, length, cases, arguments);
   Shape_$clinit();
   Square_$clinit();
   CSPInit();

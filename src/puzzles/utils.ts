@@ -1,4 +1,9 @@
-export function getRoundedPath(path: number[][], _rd = 0.2) {
+export function getRoundedPath(
+  path: number[][],
+  _rd = 0.2,
+  pot = 2,
+  FACTOR = 1,
+) {
   const res = [];
   const rd = _rd || 0.11;
 
@@ -10,13 +15,17 @@ export function getRoundedPath(path: number[][], _rd = 0.2) {
     let pt2 = [p2[0] + (p3[0] - p2[0]) * rd, p2[1] + (p3[1] - p2[1]) * rd];
 
     if (i === 0) {
-      res.push(`M ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
+      res.push(
+        `M ${svgnum(pt1[0] * FACTOR, pot)} ${svgnum(pt1[1] * FACTOR, pot)}`,
+      );
     } else {
-      res.push(`L ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
+      res.push(
+        `L ${svgnum(pt1[0] * FACTOR, pot)} ${svgnum(pt1[1] * FACTOR, pot)}`,
+      );
     }
 
     res.push(
-      `Q ${svgnum(p2[0])} ${svgnum(p2[1])} ${svgnum(pt2[0])} ${svgnum(pt2[1])}`,
+      `Q ${svgnum(p2[0] * FACTOR, pot)} ${svgnum(p2[1] * FACTOR, pot)} ${svgnum(pt2[0] * FACTOR, pot)} ${svgnum(pt2[1] * FACTOR, pot)}`,
     );
   }
 
@@ -52,6 +61,7 @@ export function newArr(length: number) {
   return Array.from({ length });
 }
 
-export function svgnum(n: number) {
-  return Math.floor(n * 100) / 100;
+export function svgnum(n: number, p = 2) {
+  const pot = 10 ** p;
+  return Math.floor(n * pot) / pot;
 }

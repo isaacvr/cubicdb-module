@@ -153,7 +153,9 @@ export function bicube(type, len) {
     [0, 3, 6, 11, 18, 17, 16, 9, 10],
     [8, 5, 2, 15, 22, 21, 20, 13, 14],
   ];
-  let start = [1, 1, 2, 3, 3, 2, 4, 4, 0, 5, 6, 7, 8, 9, 10, 10, 5, 6, 7, 8, 9, 11, 11],
+  let start = [
+      1, 1, 2, 3, 3, 2, 4, 4, 0, 5, 6, 7, 8, 9, 10, 10, 5, 6, 7, 8, 9, 11, 11,
+    ],
     move = "UFLR",
     s = "",
     arr = [],
@@ -180,7 +182,8 @@ export function bicube(type, len) {
     arr[arr.length] = [x, y];
     if (arr.length >= 2) {
       if (arr[arr.length - 1][0] == arr[arr.length - 2][0]) {
-        arr[arr.length - 2][1] = (arr[arr.length - 2][1] + arr[arr.length - 1][1]) % 4;
+        arr[arr.length - 2][1] =
+          (arr[arr.length - 2][1] + arr[arr.length - 1][1]) % 4;
         arr = arr.slice(0, arr.length - 1);
       }
     }
@@ -340,14 +343,25 @@ function ssq1t_scramble(len) {
   if (s[0][0] == 7) s = [[0, 0]].concat(s);
   if (t[0][0] == 7) t = [[0, 0]].concat(t);
   for (i = 0; i < len; i++) {
-    u += "(" + s[2 * i][0] + "," + t[2 * i][0] + "," + t[2 * i][1] + "," + s[2 * i][1] + ") / ";
+    u +=
+      "(" +
+      s[2 * i][0] +
+      "," +
+      t[2 * i][0] +
+      "," +
+      t[2 * i][1] +
+      "," +
+      s[2 * i][1] +
+      ") / ";
   }
   return u;
 }
 
 function sq1_getseq(num, type, len) {
   for (let n = 0; n < num; n++) {
-    p = [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0];
+    p = [
+      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+    ];
     seq[n] = [];
     let cnt = 0;
     while (cnt < len) {
@@ -407,7 +421,7 @@ function moyuRedi(length) {
 
 function addPyrTips(scramble, moveLen) {
   let cnt = 0;
-  const rnd = [];
+  const rnd: any[] = [];
   for (let i = 0; i < 4; i++) {
     rnd[i] = rn(3);
     if (rnd[i] > 0) {
@@ -417,7 +431,9 @@ function addPyrTips(scramble, moveLen) {
       rnd[i] = "";
     }
   }
-  return scramble.substr(0, scramble.length - moveLen * cnt) + " " + rnd.join("");
+  return (
+    scramble.substr(0, scramble.length - moveLen * cnt) + " " + rnd.join("")
+  );
 }
 
 export function utilscramble(type: string, len: number) {
@@ -431,7 +447,20 @@ export function utilscramble(type: string, len: number) {
     case "15pat": // 15 puzzle
       return do15puzzle(false, len, true, true);
     case "clkwca": // Clock (WCA Notation)
-      const clkapp = ["0+", "1+", "2+", "3+", "4+", "5+", "6+", "1-", "2-", "3-", "4-", "5-"];
+      const clkapp = [
+        "0+",
+        "1+",
+        "2+",
+        "3+",
+        "4+",
+        "5+",
+        "6+",
+        "1-",
+        "2-",
+        "3-",
+        "4-",
+        "5-",
+      ];
       ret = "UR? DR? DL? UL? U? R? D? L? ALL? y2 U? R? D? L? ALL?????";
       for (let i = 0; i < 14; i++) {
         ret = ret.replace("?", rndEl(clkapp));
@@ -488,7 +517,8 @@ export function utilscramble(type: string, len: number) {
       );
     case "clkc": // Clock (concise)
       ret = "";
-      for (let i = 0; i < 4; i++) ret += "(" + (rn(12) - 5) + ", " + (rn(12) - 5) + ") / ";
+      for (let i = 0; i < 4; i++)
+        ret += "(" + (rn(12) - 5) + ", " + (rn(12) - 5) + ") / ";
       for (let i = 0; i < 6; i++) ret += "(" + (rn(12) - 5) + ") / ";
       for (let i = 0; i < 4; i++) ret += rndEl(["d", "U"]);
       return ret;
@@ -542,8 +572,11 @@ export function utilscramble(type: string, len: number) {
     case "mgmo": // Megaminx (old style)
       return adjScramble(
         ["F", "B", "U", "D", "L", "DBR", "DL", "BR", "DR", "BL", "R", "DBL"],
-        [0x554, 0xaa8, 0x691, 0x962, 0xa45, 0x58a, 0x919, 0x626, 0x469, 0x896, 0x1a5, 0x25a],
-        len
+        [
+          0x554, 0xaa8, 0x691, 0x962, 0xa45, 0x58a, 0x919, 0x626, 0x469, 0x896,
+          0x1a5, 0x25a,
+        ],
+        len,
       );
     case "klmp": // Kilominx (Pochmann)
     case "mgmp": // Megaminx (Pochmann)
@@ -554,16 +587,32 @@ export function utilscramble(type: string, len: number) {
       return pochscramble(5, Math.ceil(len / 5));
     case "heli":
       return adjScramble(
-        ["UF", "UR", "UB", "UL", "FR", "BR", "BL", "FL", "DF", "DR", "DB", "DL"],
-        [0x09a, 0x035, 0x06a, 0x0c5, 0x303, 0x606, 0xc0c, 0x909, 0xa90, 0x530, 0xa60, 0x5c0],
-        len
+        [
+          "UF",
+          "UR",
+          "UB",
+          "UL",
+          "FR",
+          "BR",
+          "BL",
+          "FL",
+          "DF",
+          "DR",
+          "DB",
+          "DL",
+        ],
+        [
+          0x09a, 0x035, 0x06a, 0x0c5, 0x303, 0x606, 0xc0c, 0x909, 0xa90, 0x530,
+          0xa60, 0x5c0,
+        ],
+        len,
       );
     case "redi":
       return adjScramble(
         ["L", "R", "F", "B", "l", "r", "f", "b"],
         [0x1c, 0x2c, 0x43, 0x83, 0xc1, 0xc2, 0x34, 0x38],
         len,
-        ["", "'"]
+        ["", "'"],
       );
     case "redim":
       return moyuRedi(len);
@@ -577,7 +626,7 @@ export function utilscramble(type: string, len: number) {
         ["U!", "L!", "R!", "B!", "Uw", "Lw", "Rw", "Bw"],
         [0xe0, 0xd0, 0xb0, 0x70, 0xee, 0xdd, 0xbb, 0x77],
         len,
-        ["!", "'"]
+        ["!", "'"],
       );
       return addPyrTips(ret, 4).replace(/!/g, "");
     case "r3": // multiple 3x3x3 relay
@@ -622,8 +671,10 @@ export function utilscramble(type: string, len: number) {
           ["turn the right face", "turn the left face"],
           ["turn the front face", "turn the back face"],
         ],
-        " clockwise by 90 degrees,| counterclockwise by 90 degrees,| by 180 degrees,".split("|"),
-        len
+        " clockwise by 90 degrees,| counterclockwise by 90 degrees,| by 180 degrees,".split(
+          "|",
+        ),
+        len,
       ).replace(/t/, "T");
       return ret.substr(0, ret.length - 2) + ".";
     case "lol": // LOL
@@ -664,5 +715,5 @@ regScrambler(
     "333noob",
     "lol",
   ],
-  utilscramble
+  utilscramble,
 );

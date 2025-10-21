@@ -3,17 +3,12 @@ import {
   getSeed as _getSeed,
 } from "./cstimer/lib/mathlib";
 import { getScramble as cstimerGetScramble } from "./cstimer/scramble/index";
-import {
-  AScramblers,
-  options,
-  Scrambler,
-  ScramblerList,
-} from "./puzzles/constants";
-import { Puzzle } from "./puzzles/puzzle";
+import { scrambleToPuzzle } from "./helpers/scrambleToPuzzle";
+import { AScramblers, IPuzzleOrder, PuzzleType } from "./puzzles/constants";
 
 interface ImageOptions {
   scramble: string;
-  type: Scrambler;
+  type: AScramblers;
 }
 
 interface ScrambleOptions {
@@ -23,18 +18,40 @@ interface ScrambleOptions {
   prob?: number;
 }
 
+function canGenerateImage(type: PuzzleType, o: IPuzzleOrder): boolean {
+  const list: PuzzleType[] = [
+    "rubik",
+    "pyraminx",
+    "skewb",
+    "square1",
+    "clock",
+    "megaminx",
+  ];
+
+  if (type === "rubik") return o.a === o.b && o.b === o.c;
+  if (type === "pyraminx" || type === "megaminx") return o.a === 3;
+
+  return list.includes(type);
+}
+
 export function genImages(opts: ImageOptions[]) {
   if (!Array.isArray(opts)) return [];
 
-  const res: string[] = [];
+  let res: string[] = [];
 
   for (let i = 0, maxi = opts.length; i < maxi; i += 1) {
-    const op = options.get(opts[i].type || "333") || { type: "rubik" };
-    const scr = opts[i].scramble || "";
+    const op = opts[i];
+    const pzs = scrambleToPuzzle(op.scramble, op.type || "333");
 
-    if (!Array.isArray(op)) {
-      res.push((Puzzle.fromSequence(scr, op).p.getImage || (() => ""))());
-    }
+    res = [
+      ...res,
+      ...pzs.map((p) => {
+        if (canGenerateImage(p.type, p.order)) {
+          return (p.p.getImage || (() => ""))();
+        }
+        return "";
+      }),
+    ];
   }
 
   return res;
@@ -46,16 +63,16 @@ export function getScrambles(opts: ScrambleOptions[]) {
   return opts.map((op) => {
     let scr = cstimerGetScramble(op.scrambler, op.length || 0, op.prob || -1);
 
-    if (op.image && ScramblerList.includes(op.scrambler as any)) {
+    if (op.image) {
       return {
         scramble: scr,
         image: genImages([
-          { scramble: scr, type: op.scrambler as Scrambler },
-        ])[0],
+          { scramble: scr, type: op.scrambler as AScramblers },
+        ]),
       };
     }
 
-    return scr;
+    return { scramble: scr };
   });
 }
 

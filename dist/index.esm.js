@@ -2943,7 +2943,7 @@ function getScramble$3(type) {
 }
 regScrambler(["pyro", "pyrso", "pyrl4e", "pyrnb", "pyr4c"], getScramble$3);
 
-function getRoundedPath(path, _rd = 0.2) {
+function getRoundedPath(path, _rd = 0.2, pot = 2, FACTOR = 1) {
     const res = [];
     const rd = _rd || 0.11;
     for (let i = 0, maxi = path.length; i < maxi; i += 1) {
@@ -2953,12 +2953,12 @@ function getRoundedPath(path, _rd = 0.2) {
         let pt1 = [p2[0] + (p1[0] - p2[0]) * rd, p2[1] + (p1[1] - p2[1]) * rd];
         let pt2 = [p2[0] + (p3[0] - p2[0]) * rd, p2[1] + (p3[1] - p2[1]) * rd];
         if (i === 0) {
-            res.push(`M ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
+            res.push(`M ${svgnum(pt1[0] * FACTOR, pot)} ${svgnum(pt1[1] * FACTOR, pot)}`);
         }
         else {
-            res.push(`L ${svgnum(pt1[0])} ${svgnum(pt1[1])}`);
+            res.push(`L ${svgnum(pt1[0] * FACTOR, pot)} ${svgnum(pt1[1] * FACTOR, pot)}`);
         }
-        res.push(`Q ${svgnum(p2[0])} ${svgnum(p2[1])} ${svgnum(pt2[0])} ${svgnum(pt2[1])}`);
+        res.push(`Q ${svgnum(p2[0] * FACTOR, pot)} ${svgnum(p2[1] * FACTOR, pot)} ${svgnum(pt2[0] * FACTOR, pot)} ${svgnum(pt2[1] * FACTOR, pot)}`);
     }
     res.push("Z");
     return res.join(" ");
@@ -2987,8 +2987,9 @@ function clone(obj) {
 function newArr(length) {
     return Array.from({ length });
 }
-function svgnum(n) {
-    return Math.floor(n * 100) / 100;
+function svgnum(n, p = 2) {
+    const pot = 10 ** p;
+    return Math.floor(n * pot) / pot;
 }
 
 /**
@@ -4649,7 +4650,10 @@ const RubikSpec = [
     [/^\[/, "["],
     [/^\]([1-9]\d{0,1})?/, "]"],
     // Move:
-    [/^([\d]+)?([FRUBLDfrubldzxySME])(?:([w])|&sup([\d]);)?('|2'|2|3'|3)?/, "MOVE"],
+    [
+        /^([\d]+)?([FRUBLDfrubldzxySME])(?:([w])|&sup([\d]);)?('|2'|2|3'|3)?/,
+        "MOVE",
+    ],
 ];
 const SquareOneSpec = [
     // Whitespaces:
@@ -4807,7 +4811,7 @@ class Solver {
         this.tokenizerType = tokenizerType;
     }
     invert(seq) {
-        return seq.map(s => ScrambleParser.inverse(this.tokenizerType, s));
+        return seq.map((s) => ScrambleParser.inverse(this.tokenizerType, s));
     }
     invertFlat(seq) {
         const res = [];
@@ -4839,8 +4843,10 @@ class Solver {
         mp1.set("2'", 2);
         mp1.set("3", -1);
         mp1.set("3'", 1);
-        const s1 = seq.map(s => {
-            const p = s.replace(/^(\d*)([a-zA-Z]+)('|2'|2|3'|3)?$/, "$1$2 $3").split(" ");
+        const s1 = seq.map((s) => {
+            const p = s
+                .replace(/^(\d*)([a-zA-Z]+)('|2'|2|3'|3)?$/, "$1$2 $3")
+                .split(" ");
             return [p[0], mp1.get(p[1])];
         });
         for (let i = 1, maxi = s1.length; i < maxi; i += 1) {
@@ -4851,7 +4857,7 @@ class Solver {
                 maxi--;
             }
         }
-        return s1.filter(p => p[1]).map(p => p[0] + mp.get(p[1]));
+        return s1.filter((p) => p[1]).map((p) => p[0] + mp.get(p[1]));
     }
     solve(ast, simplify = true) {
         switch (ast.type) {
@@ -5044,10 +5050,14 @@ class Interpreter {
                     break;
                 }
                 default:
-                    return moves.length === 1 ? moves[0] : { type: "Expression", value: moves, cursor: -1 };
+                    return moves.length === 1
+                        ? moves[0]
+                        : { type: "Expression", value: moves, cursor: -1 };
             }
         }
-        return moves.length === 1 ? moves[0] : { type: "Expression", value: moves, cursor: -1 };
+        return moves.length === 1
+            ? moves[0]
+            : { type: "Expression", value: moves, cursor: -1 };
     }
     /**
      * Space
@@ -5072,7 +5082,11 @@ class Interpreter {
         const expr = this.Expression();
         const n = +this._eat(")").value.slice(1);
         const cant = n || 1;
-        return { type: "ParentesizedExpression", value: { expr, cant, explicit: !!n }, cursor: -1 };
+        return {
+            type: "ParentesizedExpression",
+            value: { expr, cant, explicit: !!n },
+            cursor: -1,
+        };
     }
     /**
      * ConmutatorExpression
@@ -5349,28 +5363,16 @@ class ScrambleParser {
             }
             w = f < 12 ? ~~m[1] || ~~m[4] || ((m[3] == "w" || f > 5) && 2) || 1 : -1;
             // Move Index, Face Index, Direction
-            moveseq.push([moveMap.indexOf("FRUBLD".charAt(f % 6)), w, p, 0, f < 12 ? 0 : 1]);
+            moveseq.push([
+                moveMap.indexOf("FRUBLD".charAt(f % 6)),
+                w,
+                p,
+                0,
+                f < 12 ? 0 : 1,
+            ]);
         }
         return moveseq;
     }
-    // static parseScrambleOld(scramble: string, order: IPuzzleOrder, moveMap: string) {
-    //   return ScrambleParser.parseNNN(
-    //     solvFacelet(
-    //       Puzzle.fromSequence(
-    //         scramble,
-    //         { type: "rubik", order: [order.a, order.b, order.c] },
-    //         true,
-    //         true
-    //       ).toFacelet()
-    //     ),
-    //     order,
-    //     moveMap
-    //   ).map((moves: any) => ({
-    //     move: moves[1],
-    //     pos: moveMap.indexOf(moves[1]),
-    //     times: ((moves[2] % 4) + 4) % 4,
-    //   }));
-    // }
     static parseNNN(scramble, order, MOVE_MAP = "URFDLB", moveToOrder = _moveToOrder, simplify = false) {
         const scr = ScrambleParser.parseNNNString(scramble, simplify);
         const moves = ScrambleParser.parseScramble(scr, MOVE_MAP);
@@ -5396,8 +5398,8 @@ class ScrambleParser {
         // Carrot Notation
         if (scramble
             .split("\n")
-            .filter(e => e)
-            .every(e => /^(\s*([+-]{2}|U|U'))*$/.test(e))) {
+            .filter((e) => e)
+            .every((e) => /^(\s*([+-]{2}|U|U'))*$/.test(e))) {
             const moves = scramble.match(/[+-]{2}|U'?/g);
             if (!moves) {
                 return res;
@@ -5432,7 +5434,8 @@ class ScrambleParser {
                     res.push([type, turns, -1, mv[0] === mv[0].toLowerCase() ? 1 : 0]);
                 }
                 else {
-                    const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) * Math.sign(mv.indexOf("'") + 0.2);
+                    const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) *
+                        Math.sign(mv.indexOf("'") + 0.2);
                     if (/^([ULFRBDy]\d*'?)$/.test(mv)) {
                         if (mv[0] === "y") {
                             res.push([0, turns, 1]);
@@ -5444,7 +5447,8 @@ class ScrambleParser {
                     }
                     else if (/^([dbDB][RL]\d*'?)$/.test(mv)) {
                         res.push([
-                            ["dl", "dr", "bl", "br"].indexOf(mv.slice(0, 2).toLowerCase()) + 6,
+                            ["dl", "dr", "bl", "br"].indexOf(mv.slice(0, 2).toLowerCase()) +
+                                6,
                             turns,
                             1,
                         ]);
@@ -5470,12 +5474,18 @@ class ScrambleParser {
             return [];
         for (let i = 0, maxi = moves.length; i < maxi; i += 1) {
             const mv = moves[i];
-            const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) * Math.sign(mv.indexOf("'") + 0.2);
+            const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) *
+                Math.sign(mv.indexOf("'") + 0.2);
             if (mv.startsWith("o")) {
                 res.push([moveMap.indexOf(mv[1]), turns, 0, -1]);
             }
             else if (/^[yz]$/.test(mv[0])) {
-                res.push(["y--z".indexOf(mv[0]), (mv[0] === "z" ? -1 : 1) * turns, 0, -1]);
+                res.push([
+                    "y--z".indexOf(mv[0]),
+                    (mv[0] === "z" ? -1 : 1) * turns,
+                    0,
+                    -1,
+                ]);
             }
             else if (mv[0] === "d") {
                 res.push([0, -turns, 2, -1]);
@@ -5500,17 +5510,23 @@ class ScrambleParser {
             return [];
         for (let i = 0, maxi = moves.length; i < maxi; i += 1) {
             const mv = moves[i];
-            const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) * Math.sign(mv.indexOf("'") + 0.2);
+            const turns = (parseInt(mv.replace(/\D+(\d+)\D*/g, "$1")) || 1) *
+                Math.sign(mv.indexOf("'") + 0.2);
             res.push([moveMap.indexOf(mv[0]), -turns]);
         }
         return res;
     }
     static parseSquare1(scramble) {
         const newScramble = scramble.replace(/\s+/g, "").split("/");
-        const sqres = [/^\((-?\d),(-?\d)\)$/, /^(-?\d),(-?\d)$/, /^(-?\d)(-?\d)$/, /^(-?\d)$/];
+        const sqres = [
+            /^\((-?\d),(-?\d)\)$/,
+            /^(-?\d),(-?\d)$/,
+            /^(-?\d)(-?\d)$/,
+            /^(-?\d)$/,
+        ];
         const res = [];
         for (let i = 0, maxi = newScramble.length; i < maxi; i += 1) {
-            const reg = sqres.find(reg => reg.exec(newScramble[i]));
+            const reg = sqres.find((reg) => reg.exec(newScramble[i]));
             if (reg) {
                 const m = reg.exec(newScramble[i]);
                 const u = ~~m[1];
@@ -5598,7 +5614,7 @@ class ScrambleParser {
                 else {
                     const pin = parseInt(mv
                         .split("")
-                        .map(s => (s === "U" ? 1 : 0))
+                        .map((s) => (s === "U" ? 1 : 0))
                         .join(""), 2);
                     res.push([pin, NaN, NaN]);
                 }
@@ -5624,7 +5640,10 @@ class ScrambleParser {
                 "/",
                 "\\",
             ];
-            const pins = [0x8, 0x4, 0x2, 0x1, 0xf, 0xc, 0x5, 0x3, 0xa, 0x7, 0xb, 0xd, 0xe, 0x6, 0x9];
+            const pins = [
+                0x8, 0x4, 0x2, 0x1, 0xf, 0xc, 0x5, 0x3, 0xa, 0x7, 0xb, 0xd, 0xe, 0x6,
+                0x9,
+            ];
             let first = true;
             let pinCode = 0x0;
             for (let i = 0, maxi = parts.length; i < maxi; i += 1) {
@@ -5640,7 +5659,10 @@ class ScrambleParser {
                     first = true;
                 }
                 else if (parts[i][0] === "z") {
-                    res.push([-3, parts[i][1] === "2" ? 2 : parts[i][1] === "'" ? -1 : 1]);
+                    res.push([
+                        -3,
+                        parts[i][1] === "2" ? 2 : parts[i][1] === "'" ? -1 : 1,
+                    ]);
                     first = true;
                 }
                 else {
@@ -5649,7 +5671,9 @@ class ScrambleParser {
                         if (parts[i].startsWith(letters[j])) {
                             cmd[0] = pins[j];
                             if (parts[i].includes("(")) {
-                                const mvs = parts[i].slice(letters[j].length).match(/\((\d[+-]),\s*(\d[+-])\)/);
+                                const mvs = parts[i]
+                                    .slice(letters[j].length)
+                                    .match(/\((\d[+-]),\s*(\d[+-])\)/);
                                 if (mvs && mvs.length >= 3) {
                                     const upPos = checkBit(cmd[0], 3) === checkBit(cmd[0], 1)
                                         ? [2, 1][(cmd[0] & 0x8) >> 3]
@@ -5701,7 +5725,10 @@ class ScrambleParser {
                     res.push([-2, 0, 0]);
                 }
                 else if (parts[i][0] === "z") {
-                    res.push([-3, parts[i][1] === "2" ? 2 : parts[i][1] === "'" ? -1 : 1]);
+                    res.push([
+                        -3,
+                        parts[i][1] === "2" ? 2 : parts[i][1] === "'" ? -1 : 1,
+                    ]);
                 }
                 else if (/\d+/.test(parts[i])) {
                     const turns = parseInt(parts[i].replace("=", "").slice(1, 3));
@@ -5714,7 +5741,11 @@ class ScrambleParser {
                 }
                 else {
                     if (pins.length === 4) {
-                        res.push([parseInt(pins.replace(/U/g, "1").replace(/d/g, "0"), 2), u, d]);
+                        res.push([
+                            parseInt(pins.replace(/U/g, "1").replace(/d/g, "0"), 2),
+                            u,
+                            d,
+                        ]);
                         d = 0;
                         u = 0;
                         pins = "";
@@ -5725,7 +5756,11 @@ class ScrambleParser {
                 }
             }
             if (pins.length === 4) {
-                res.push([parseInt(pins.replace(/U/g, "1").replace(/d/g, "0"), 2), u, d]);
+                res.push([
+                    parseInt(pins.replace(/U/g, "1").replace(/d/g, "0"), 2),
+                    u,
+                    d,
+                ]);
             }
         }
         return res;
@@ -5750,7 +5785,7 @@ class ScrambleParser {
             case "r234567": {
                 return prettyScramble(scramble)
                     .split("\n")
-                    .map(s => s.replace(/^\d+\)(.+)$/, "$1").trim());
+                    .map((s) => s.replace(/^\d+\)(.+)$/, "$1").trim());
             }
             case "sq2":
             case "gearso":
@@ -5783,7 +5818,7 @@ class ScrambleParser {
                 return [
                     scramble
                         .split(" ")
-                        .map(mv => mv[0] + "2")
+                        .map((mv) => mv[0] + "2")
                         .join(" "),
                 ];
             }
@@ -5798,9 +5833,9 @@ class ScrambleParser {
         if (type === "clock") {
             res = sequence
                 .split(" ")
-                .filter(s => !/^[UD][RL]$/.test(s) && s.trim())
+                .filter((s) => !/^[UD][RL]$/.test(s) && s.trim())
                 .reverse()
-                .map(s => s.endsWith("0+") || s === "y2"
+                .map((s) => s.endsWith("0+") || s === "y2"
                 ? s
                 : s.slice(0, -1) + { "+": "-", "-": "+" }[s[s.length - 1]]);
         }
@@ -5823,7 +5858,9 @@ class ScrambleParser {
                 const mv = arr[i];
                 if (/^([LRDlrd](\+|-){1,2})$/.test(mv)) {
                     res.push(mv[0] +
-                        (mv[1] === "+" ? mv.slice(1).replace(/\+/g, "-") : mv.slice(1).replace(/-/g, "+")));
+                        (mv[1] === "+"
+                            ? mv.slice(1).replace(/\+/g, "-")
+                            : mv.slice(1).replace(/-/g, "+")));
                 }
                 else {
                     const turns = (5 -
@@ -5847,12 +5884,14 @@ class ScrambleParser {
             }
         }
         else {
-            const fn = type === "pyraminx" ? ScrambleParser.parsePyraminxString : ScrambleParser.parseNNNString;
+            const fn = type === "pyraminx"
+                ? ScrambleParser.parsePyraminxString
+                : ScrambleParser.parseNNNString;
             const arr = fn(sequence)
                 .trim()
                 .split(" ")
-                .map(e => e.trim())
-                .filter(e => e != "");
+                .map((e) => e.trim())
+                .filter((e) => e != "");
             for (let i = arr.length - 1; i >= 0; i -= 1) {
                 if (arr[i].indexOf("2") > -1) {
                     res.push(arr[i].replace("'", ""));
@@ -9448,7 +9487,8 @@ function FullCube_getParity(obj) {
     cnt = 0;
     obj.arr[0] = FullCube_pieceAt(obj, 0);
     for (i = 1; i < 24; ++i) {
-        FullCube_pieceAt(obj, i) != obj.arr[cnt] && (obj.arr[++cnt] = FullCube_pieceAt(obj, i));
+        FullCube_pieceAt(obj, i) != obj.arr[cnt] &&
+            (obj.arr[++cnt] = FullCube_pieceAt(obj, i));
     }
     p = 0;
     for (a = 0; a < 16; ++a) {
@@ -9476,7 +9516,11 @@ function FullCube_getShapeIdx(obj) {
     dlx |= dlx >> 3;
     dlx |= dlx >> 6;
     dlx = (dlx & 15) | ((dlx >> 12) & 48);
-    return Shape_getShape2Idx((FullCube_getParity(obj) << 24) | (ulx << 18) | (urx << 12) | (dlx << 6) | drx);
+    return Shape_getShape2Idx((FullCube_getParity(obj) << 24) |
+        (ulx << 18) |
+        (urx << 12) |
+        (dlx << 6) |
+        drx);
 }
 function FullCube_getSquare(obj, sq) {
     let a, b;
@@ -9562,7 +9606,8 @@ function FullCube_randomCube(indice) {
     return f;
 }
 function FullCube() { }
-let _ = (FullCube_FullCube__Ljava_lang_String_2V.prototype = FullCube.prototype);
+let _ = (FullCube_FullCube__Ljava_lang_String_2V.prototype =
+    FullCube.prototype);
 _.dl = 10062778;
 _.dr = 14536702;
 _.ml = 0;
@@ -9813,7 +9858,9 @@ function Shape_bottomMove(obj) {
 }
 function Shape_getIdx(obj) {
     let ret;
-    ret = (binarySearch(Shape_ShapeIdx, (obj.top << 12) | obj.bottom) << 1) | obj.Shape_parity;
+    ret =
+        (binarySearch(Shape_ShapeIdx, (obj.top << 12) | obj.bottom) << 1) |
+            obj.Shape_parity;
     return ret;
 }
 function Shape_setIdx(obj, idx) {
@@ -10034,11 +10081,12 @@ function binarySearch(sortedArray, key) {
     return -low - 1;
 }
 const cspcases = [
-    0, 1, 3, 18, 19, 1004, 1005, 1006, 1007, 1008, 1009, 1011, 1015, 1016, 1018, 1154, 1155, 1156,
-    1157, 1158, 1159, 1161, 1166, 1168, 424, 425, 426, 427, 428, 429, 431, 436, 95, 218, 341, 482,
-    528, 632, 1050, 342, 343, 345, 346, 348, 353, 223, 487, 533, 535, 1055, 219, 225, 483, 489, 639,
-    1051, 1057, 486, 1054, 1062, 6, 21, 34, 46, 59, 71, 144, 157, 182, 305, 7, 22, 35, 47, 60, 72,
-    145, 158, 183, 306, 8, 23, 36, 48, 61, 73, 146, 159, 184, 307,
+    0, 1, 3, 18, 19, 1004, 1005, 1006, 1007, 1008, 1009, 1011, 1015, 1016, 1018,
+    1154, 1155, 1156, 1157, 1158, 1159, 1161, 1166, 1168, 424, 425, 426, 427, 428,
+    429, 431, 436, 95, 218, 341, 482, 528, 632, 1050, 342, 343, 345, 346, 348,
+    353, 223, 487, 533, 535, 1055, 219, 225, 483, 489, 639, 1051, 1057, 486, 1054,
+    1062, 6, 21, 34, 46, 59, 71, 144, 157, 182, 305, 7, 22, 35, 47, 60, 72, 145,
+    158, 183, 306, 8, 23, 36, 48, 61, 73, 146, 159, 184, 307,
 ];
 let CSPInitRet = false;
 function CSPInit() {
@@ -10168,10 +10216,11 @@ const cspfilter = [
     "Line-x222",
 ];
 const cspprobs = [
-    16, 16, 16, 10, 16, 24, 16, 24, 16, 24, 16, 16, 4, 24, 16, 48, 32, 48, 32, 48, 32, 32, 48, 16, 48,
-    32, 48, 16, 48, 32, 32, 48, 36, 48, 72, 72, 48, 48, 72, 48, 36, 72, 48, 48, 72, 32, 48, 16, 32,
-    48, 16, 32, 48, 48, 16, 48, 48, 36, 72, 36, 72, 96, 96, 72, 96, 72, 72, 72, 72, 24, 48, 64, 64,
-    48, 64, 48, 48, 48, 48, 16, 24, 32, 32, 24, 32, 24, 24, 24, 24, 8,
+    16, 16, 16, 10, 16, 24, 16, 24, 16, 24, 16, 16, 4, 24, 16, 48, 32, 48, 32, 48,
+    32, 32, 48, 16, 48, 32, 48, 16, 48, 32, 32, 48, 36, 48, 72, 72, 48, 48, 72,
+    48, 36, 72, 48, 48, 72, 32, 48, 16, 32, 48, 16, 32, 48, 48, 16, 48, 48, 36,
+    72, 36, 72, 96, 96, 72, 96, 72, 72, 72, 72, 24, 48, 64, 64, 48, 64, 48, 48,
+    48, 48, 16, 24, 32, 32, 24, 32, 24, 24, 24, 24, 8,
 ];
 const search = new Search_Search();
 function square1SolverGetRandomScramble() {
@@ -10181,7 +10230,6 @@ function square1SolverGetRandomScramble() {
     return scrambleString;
 }
 function square1CubeShapeParityScramble(type, length, cases) {
-    console.log("SQ1 CSP: ", type, length, cases, arguments);
     Shape_$clinit();
     Square_$clinit();
     CSPInit();
@@ -10494,7 +10542,9 @@ function bicube(type, len) {
         [0, 3, 6, 11, 18, 17, 16, 9, 10],
         [8, 5, 2, 15, 22, 21, 20, 13, 14],
     ];
-    let start = [1, 1, 2, 3, 3, 2, 4, 4, 0, 5, 6, 7, 8, 9, 10, 10, 5, 6, 7, 8, 9, 11, 11], move = "UFLR", s = "", arr = [], poss, done, i, j, x, y;
+    let start = [
+        1, 1, 2, 3, 3, 2, 4, 4, 0, 5, 6, 7, 8, 9, 10, 10, 5, 6, 7, 8, 9, 11, 11,
+    ], move = "UFLR", s = "", arr = [], poss, done, i, j, x, y;
     while (arr.length < len) {
         poss = [1, 1, 1, 1];
         for (j = 0; j < 4; j++) {
@@ -10513,7 +10563,8 @@ function bicube(type, len) {
         arr[arr.length] = [x, y];
         if (arr.length >= 2) {
             if (arr[arr.length - 1][0] == arr[arr.length - 2][0]) {
-                arr[arr.length - 2][1] = (arr[arr.length - 2][1] + arr[arr.length - 1][1]) % 4;
+                arr[arr.length - 2][1] =
+                    (arr[arr.length - 2][1] + arr[arr.length - 1][1]) % 4;
                 arr = arr.slice(0, arr.length - 1);
             }
         }
@@ -10659,13 +10710,24 @@ function ssq1t_scramble(len) {
     if (t[0][0] == 7)
         t = [[0, 0]].concat(t);
     for (i = 0; i < len; i++) {
-        u += "(" + s[2 * i][0] + "," + t[2 * i][0] + "," + t[2 * i][1] + "," + s[2 * i][1] + ") / ";
+        u +=
+            "(" +
+                s[2 * i][0] +
+                "," +
+                t[2 * i][0] +
+                "," +
+                t[2 * i][1] +
+                "," +
+                s[2 * i][1] +
+                ") / ";
     }
     return u;
 }
 function sq1_getseq(num, type, len) {
     for (let n = 0; n < num; n++) {
-        p = [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0];
+        p = [
+            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+        ];
         seq[n] = [];
         let cnt = 0;
         while (cnt < len) {
@@ -10735,7 +10797,7 @@ function addPyrTips(scramble, moveLen) {
             rnd[i] = "";
         }
     }
-    return scramble.substr(0, scramble.length - moveLen * cnt) + " " + rnd.join("");
+    return (scramble.substr(0, scramble.length - moveLen * cnt) + " " + rnd.join(""));
 }
 function utilscramble(type, len) {
     let ret = "";
@@ -10747,7 +10809,20 @@ function utilscramble(type, len) {
         case "15pat": // 15 puzzle
             return do15puzzle(false, len, true, true);
         case "clkwca": // Clock (WCA Notation)
-            const clkapp = ["0+", "1+", "2+", "3+", "4+", "5+", "6+", "1-", "2-", "3-", "4-", "5-"];
+            const clkapp = [
+                "0+",
+                "1+",
+                "2+",
+                "3+",
+                "4+",
+                "5+",
+                "6+",
+                "1-",
+                "2-",
+                "3-",
+                "4-",
+                "5-",
+            ];
             ret = "UR? DR? DL? UL? U? R? D? L? ALL? y2 U? R? D? L? ALL?????";
             for (let i = 0; i < 14; i++) {
                 ret = ret.replace("?", rndEl(clkapp));
@@ -10855,7 +10930,10 @@ function utilscramble(type, len) {
         case "giga": // Gigaminx
             return gigascramble(len);
         case "mgmo": // Megaminx (old style)
-            return adjScramble(["F", "B", "U", "D", "L", "DBR", "DL", "BR", "DR", "BL", "R", "DBL"], [0x554, 0xaa8, 0x691, 0x962, 0xa45, 0x58a, 0x919, 0x626, 0x469, 0x896, 0x1a5, 0x25a], len);
+            return adjScramble(["F", "B", "U", "D", "L", "DBR", "DL", "BR", "DR", "BL", "R", "DBL"], [
+                0x554, 0xaa8, 0x691, 0x962, 0xa45, 0x58a, 0x919, 0x626, 0x469, 0x896,
+                0x1a5, 0x25a,
+            ], len);
         case "klmp": // Kilominx (Pochmann)
         case "mgmp": // Megaminx (Pochmann)
             return pochscramble(10, Math.ceil(len / 10));
@@ -10864,7 +10942,23 @@ function utilscramble(type, len) {
         case "kilo": // Kilominx (Pochmann)
             return pochscramble(5, Math.ceil(len / 5));
         case "heli":
-            return adjScramble(["UF", "UR", "UB", "UL", "FR", "BR", "BL", "FL", "DF", "DR", "DB", "DL"], [0x09a, 0x035, 0x06a, 0x0c5, 0x303, 0x606, 0xc0c, 0x909, 0xa90, 0x530, 0xa60, 0x5c0], len);
+            return adjScramble([
+                "UF",
+                "UR",
+                "UB",
+                "UL",
+                "FR",
+                "BR",
+                "BL",
+                "FL",
+                "DF",
+                "DR",
+                "DB",
+                "DL",
+            ], [
+                0x09a, 0x035, 0x06a, 0x0c5, 0x303, 0x606, 0xc0c, 0x909, 0xa90, 0x530,
+                0xa60, 0x5c0,
+            ], len);
         case "redi":
             return adjScramble(["L", "R", "F", "B", "l", "r", "f", "b"], [0x1c, 0x2c, 0x43, 0x83, 0xc1, 0xc2, 0x34, 0x38], len, ["", "'"]);
         case "redim":
@@ -10976,10 +11070,10 @@ regScrambler([
   
   Modified by Isaac Vega <isaacvega1996@gmail.com>
  */
-const U = 0, R = 5, F = 10, L = 15, BL = 20, BR = 25, DR = 30, DL = 35, DBL = 40, B = 45, DBR = 50, D = 55;
+const U = 0, R = 5, F$1 = 10, L = 15, BL = 20, BR = 25, DR = 30, DL = 35, DBL = 40, B = 45, DBR = 50, D = 55;
 const kiloFacelet = [
-    [U + 2, R + 3, F + 4],
-    [U + 3, F + 3, L + 4],
+    [U + 2, R + 3, F$1 + 4],
+    [U + 3, F$1 + 3, L + 4],
     [U + 4, L + 3, BL + 4],
     [U + 0, BL + 3, BR + 4],
     [U + 1, BR + 3, R + 4],
@@ -10988,15 +11082,15 @@ const kiloFacelet = [
     [D + 1, DR + 0, DBR + 1],
     [D + 0, DL + 0, DR + 1],
     [D + 4, DBL + 0, DL + 1],
-    [F + 0, R + 2, DR + 3],
-    [L + 0, F + 2, DL + 3],
+    [F$1 + 0, R + 2, DR + 3],
+    [L + 0, F$1 + 2, DL + 3],
     [BL + 0, L + 2, DBL + 3],
     [BR + 0, BL + 2, B + 3],
     [R + 0, BR + 2, DBR + 3],
     [B + 4, BL + 1, DBL + 2],
     [DBR + 4, BR + 1, B + 2],
     [DR + 4, R + 1, DBR + 2],
-    [DL + 4, F + 1, DR + 2],
+    [DL + 4, F$1 + 1, DR + 2],
     [DBL + 4, L + 1, DL + 2],
 ];
 class KiloCubie {
@@ -11550,29 +11644,12 @@ regScrambler("klmso", getScramble$1);
 function getScramble(mode, len, pb) {
     return (scramblers.get(mode) || (() => ""))
         .apply(null, [mode, Math.abs(len), pb < 0 ? undefined : pb])
-        .replace(/\\n/g, "<br>")
+        .split(/\\n/g)
+        .map((e) => e.trim())
+        .join("\n")
         .trim();
 }
 
-const ScramblerList = [
-    "222so",
-    "333",
-    "333fm",
-    "333ni",
-    "333mbf",
-    "333oh",
-    "444bld",
-    "444wca",
-    "555wca",
-    "555bld",
-    "666wca",
-    "777wca",
-    "clkwca",
-    "mgmp",
-    "pyrso",
-    "skbso",
-    "sqrs",
-];
 const COLORS = {
     green: "rgb(0,157,84)",
     red: "rgb(220,66,47)",
@@ -11861,7 +11938,7 @@ function getCanonical(v) {
         }
     }
     let cmps = [v.x, v.y, v.z];
-    cmps = cmps.map(n => (Math.abs(n - Math.round(n)) < EPS ? Math.round(n) : n));
+    cmps = cmps.map((n) => Math.abs(n - Math.round(n)) < EPS ? Math.round(n) : n);
     return new Vector3D(cmps[0], cmps[1], cmps[2]);
 }
 class Vector3D {
@@ -11877,7 +11954,9 @@ class Vector3D {
         return v1.cross(v2);
     }
     static crossValue(a, b, c) {
-        return (a.x * (b.y * c.z - c.y * b.z) - a.y * (b.x * c.z - c.x * b.z) + a.z * (b.x * c.y - c.x * b.y));
+        return (a.x * (b.y * c.z - c.y * b.z) -
+            a.y * (b.x * c.z - c.x * b.z) +
+            a.z * (b.x * c.y - c.x * b.y));
     }
     static direction(p1, p2, p3, vec) {
         return Vector3D.direction1(p1, Vector3D.cross(p1, p2, p3), vec);
@@ -11908,14 +11987,12 @@ class Vector3D {
     }
     reflect(a, b, c, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         return this.reflect1(a, Vector3D.cross(a, b, c).unit(), self);
     }
     reflect1(a, u, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         return this.add(u.mul(-2 * this.sub(a).dot(u)), self);
@@ -11928,7 +12005,6 @@ class Vector3D {
     }
     add(v, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         if (self) {
@@ -11941,7 +12017,6 @@ class Vector3D {
     }
     sub(v, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         if (self) {
@@ -11954,7 +12029,6 @@ class Vector3D {
     }
     mul(f, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         if (self) {
@@ -11967,7 +12041,6 @@ class Vector3D {
     }
     div(f, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
         if (self) {
@@ -11980,22 +12053,21 @@ class Vector3D {
     }
     rotate(O, u, ang, self) {
         if (self && this.isConstant) {
-            console.log("Trying to modify a constant vector");
             return this;
         }
-        const vecs = [0, 1, 2].map(n => [[RIGHT, UP, FRONT][n], n]);
-        const fAngs = [0, 1, 2, 3].map(n => [(n * PI) / 2, n]);
+        const vecs = [0, 1, 2].map((n) => [[RIGHT, UP, FRONT][n], n]);
+        const fAngs = [0, 1, 2, 3].map((n) => [(n * PI) / 2, n]);
         const rAng = ((ang % TAU) + TAU) % TAU;
         if (O.abs() < EPS &&
-            vecs.some(v => v[0].cross(u).abs() < EPS) &&
-            fAngs.some(a => Math.abs(a[0] - rAng) < EPS)) {
+            vecs.some((v) => v[0].cross(u).abs() < EPS) &&
+            fAngs.some((a) => Math.abs(a[0] - rAng) < EPS)) {
             const idx = [
                 (vt) => new Vector3D(vt.x, -vt.z, vt.y), // RIGHT => (x, y, z) => (x, -z, y)
                 (vt) => new Vector3D(vt.z, vt.y, -vt.x), // UP    => (x, y, z) => (z, y, -x)
                 (vt) => new Vector3D(-vt.y, vt.x, vt.z), // FRONT => (x, y, z) => (-y, x, z)
             ];
-            const aIndex = fAngs.filter(a => Math.abs(a[0] - rAng) < EPS)[0][1];
-            const vIndex = vecs.filter(v => v[0].cross(u).abs() < EPS)[0][1];
+            const aIndex = fAngs.filter((a) => Math.abs(a[0] - rAng) < EPS)[0][1];
+            const vIndex = vecs.filter((v) => v[0].cross(u).abs() < EPS)[0][1];
             const cant = vecs[vIndex][0].dot(u) > 0 ? aIndex : (4 - aIndex) % 4;
             let vt = this.clone();
             for (let i = 1; i <= cant; i += 1) {
@@ -12052,7 +12124,7 @@ class Vector3D {
         return `<${this.x}; ${this.y}; ${this.z}>`;
     }
     toNormal() {
-        const coords = [this.x, this.y, this.z].map(e => (Math.abs(e) < EPS ? 0 : Math.sign(e)));
+        const coords = [this.x, this.y, this.z].map((e) => Math.abs(e) < EPS ? 0 : Math.sign(e));
         this.x = coords[0];
         this.y = coords[1];
         this.z = coords[2];
@@ -12075,11 +12147,15 @@ const BACK = new Vector3D(0, 0, -1, true);
 const UP = new Vector3D(0, 1, 0, true);
 const DOWN = new Vector3D(0, -1, 0, true);
 
-let lineWidth = 0.4;
+const F = 0.1;
 function circle(parts, x, y, rad, col, omitStroke = false) {
-    parts.push(`<circle cx="${svgnum(x)}" cy="${svgnum(y)}" r="${svgnum(rad * 0.95)}" fill="${col}" stroke-width="${lineWidth}" ${!omitStroke ? `stroke="${col}"` : ""} />`);
+    parts.push([
+        col,
+        !omitStroke ? col : "",
+        `<circle cx="${svgnum(x * F)}" cy="${svgnum(y * F)}" r="${svgnum(rad * F * 0.95)}"/>`,
+    ]);
 }
-function drawSingleClock(parts, RAD, X, Y, MAT, PINS, BLACK, WHITE, GRAY) {
+function drawSingleClock(parts, RAD, X, Y, MAT, PINS, { BLACK, WHITE, GRAY, RED, }) {
     const W = RAD * 0.582491582491582;
     const RAD_CLOCK = RAD * 0.2020202020202;
     const BORDER = RAD * 0.0909090909090909;
@@ -12096,12 +12172,14 @@ function drawSingleClock(parts, RAD, X, Y, MAT, PINS, BLACK, WHITE, GRAY) {
     ].map((v) => v.mul(RAD_CLOCK));
     const circles = [new Vector3D(0.1672), new Vector3D(0.1254)].map((v) => v.mul(RAD_CLOCK));
     const R_PIN = circles[0].x * 2.3;
-    lineWidth = 0.4;
     circle(parts, X, Y, RAD, WHITE);
-    for (let i = -1; i < 2; i += 2) {
-        for (let j = -1; j < 2; j += 2) {
-            circle(parts, X + W * i, Y + W * j, RAD_CLOCK + BORDER + BORDER1, WHITE);
-            circle(parts, X + W * i, Y + W * j, RAD_CLOCK + BORDER, BLACK);
+    for (let p = 0; p <= 1; p++) {
+        const rads = [RAD_CLOCK + BORDER + BORDER1, RAD_CLOCK + BORDER];
+        const cols = [WHITE, BLACK];
+        for (let i = -1; i < 2; i += 2) {
+            for (let j = -1; j < 2; j += 2) {
+                circle(parts, X + W * i, Y + W * j, rads[p], cols[p]);
+            }
         }
     }
     circle(parts, X, Y, RAD - BORDER1, BLACK);
@@ -12113,22 +12191,25 @@ function drawSingleClock(parts, RAD, X, Y, MAT, PINS, BLACK, WHITE, GRAY) {
             const ang = (angId * TAU) / 12;
             const pts = arrow.map((v) => v.rotate(CENTER, FRONT, PI + ang).add(ANCHOR));
             const pathParts = [];
-            lineWidth = 0.2;
             for (let p = 0, maxp = pts.length; p < maxp; p += 1) {
                 if (p === 0)
-                    pathParts.push(`M ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
+                    pathParts.push(`M ${svgnum(pts[p].x * F)} ${svgnum(pts[p].y * F)}`);
                 else
-                    pathParts.push(`L ${svgnum(pts[p].x)} ${svgnum(pts[p].y)}`);
+                    pathParts.push(`L ${svgnum(pts[p].x * F)} ${svgnum(pts[p].y * F)}`);
             }
             pathParts.push("Z");
-            parts.push(`<path d="${pathParts.join(" ")}" stroke="${BLACK}" stroke-width="${0.2}" fill="${BLACK}" />`);
-            lineWidth = 0.4;
+            parts.push([
+                BLACK,
+                BLACK,
+                `<path d="${pathParts.join(" ")}" stroke-width="${0.02}" />`,
+            ]);
             circle(parts, ANCHOR.x, ANCHOR.y, circles[0].x, BLACK);
             circle(parts, ANCHOR.x, ANCHOR.y, circles[1].x, WHITE);
-            for (let a = 0; a < 12; a += 1) {
-                const pt = ANCHOR.add(DOWN.mul(RAD_CLOCK + BORDER / 2).rotate(CENTER, FRONT, (a * TAU) / 12));
-                const r = (circles[0].x / 4) * (a ? 1 : 1.6);
-                const c = a ? WHITE : "#ff0000";
+            for (let a = 1; a <= 12; a += 1) {
+                const na = a % 12;
+                const pt = ANCHOR.add(DOWN.mul(RAD_CLOCK + BORDER / 2).rotate(CENTER, FRONT, (na * TAU) / 12));
+                const r = (circles[0].x / 4) * (na ? 1 : 1.6);
+                const c = na ? WHITE : RED;
                 circle(parts, pt.x, pt.y, r, c);
             }
             if (i <= 0 && j <= 0) {
@@ -12148,10 +12229,74 @@ function clockImage(cube, DIM) {
     const BLACK = cube.palette.black;
     const WHITE = cube.palette.white;
     const GRAY = cube.palette.gray;
+    const RED = "red";
     const parts = [];
-    drawSingleClock(parts, RAD, RAD, RAD, MAT[0], PINS2, BLACK, WHITE, GRAY);
-    drawSingleClock(parts, RAD, W - RAD, RAD, MAT[1], PINS1, WHITE, BLACK, GRAY);
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${DIM}">${parts.join("")}</svg>`;
+    drawSingleClock(parts, RAD, RAD, RAD, MAT[0], PINS2, {
+        BLACK,
+        WHITE,
+        GRAY,
+        RED,
+    });
+    drawSingleClock(parts, RAD, W - RAD, RAD, MAT[1], PINS1, {
+        BLACK: WHITE,
+        WHITE: BLACK,
+        GRAY,
+        RED,
+    });
+    const fillClass = {
+        [BLACK]: "f0",
+        [WHITE]: "f1",
+        [GRAY]: "f2",
+        [RED]: "f3",
+        "": "",
+    };
+    const strokeClass = {
+        [BLACK]: "s0",
+        [WHITE]: "s1",
+        [GRAY]: "s2",
+        [RED]: "s3",
+        "": "",
+    };
+    const cls = parts.map((p) => {
+        // let pos = p[2].indexOf(" ");
+        // let tagName = p[2].slice(0, pos);
+        let classes = [];
+        if (p[0])
+            classes.push(fillClass[p[0]]);
+        if (p[1])
+            classes.push(strokeClass[p[1]]);
+        return classes
+            .map((c) => c.trim())
+            .filter((c) => c)
+            .join(" ");
+        // return tagName + `${cl ? ` class="${cl}"` : ""}` + p[2].slice(pos);
+    });
+    let groups = parts.reduce((acc, e, p) => {
+        if (p == 0)
+            return [[cls[p], e[2]]];
+        if (cls[p] === acc[acc.length - 1][0]) {
+            acc[acc.length - 1].push(e[2]);
+        }
+        else {
+            acc.push([cls[p], e[2]]);
+        }
+        return acc;
+    }, []);
+    return [
+        `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}">`,
+        `<style>circle{stroke-width:0.1;}${[BLACK, WHITE, GRAY, RED].map((c, p) => `.f${p}{fill:${c};}`).join("") +
+            [BLACK, WHITE, GRAY, RED].map((c, p) => `.s${p}{stroke:${c};}`).join("")}</style>`,
+        groups
+            .map((g) => {
+            if (g.length === 2) {
+                let pos = g[1].indexOf(" ");
+                return g[1].slice(0, pos) + ` class="${g[0]}"` + g[1].slice(pos);
+            }
+            return `<g class="${g[0]}">${g.slice(1).join("")}</g>`;
+        })
+            .join(""),
+        `</svg>`,
+    ].join("");
 }
 function CLOCK() {
     const clock = {
@@ -12380,9 +12525,780 @@ function MEGAMINX() {
         });
     };
     mega.getImage = () => {
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 1500 750" class="NTY2YjNhZDItMjZl"><style>.NTY2YjNhZDItMjZl .c0{fill:#e6e6e6;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c1{fill:#dc422f;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c2{fill:#009d54;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c3{fill:#8a1bff;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c4{fill:#ffeb3b;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c5{fill:#3d81f6;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c6{fill:#707070;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c7{fill:#53b1f3;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c8{fill:#dcd3a5;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c9{fill:#ed96a1;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c10{fill:#4ad931;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c11{fill:#e87000;stroke:black;stroke-width:3;stroke-linecap:square;}.NTY2YjNhZDItMjZl .c12{alignment-baseline:middle;fill:rgb(25, 25, 25);text-anchor:middle;}.NTY2YjNhZDItMjZl .c13{alignment-baseline:middle;fill:rgb(25, 25, 25);text-anchor:middle;}</style><path class="${getClass(faces.U[0])}" d="M398.21,190.26Q387.14 182.22,376.08 190.26L342.9,214.37Q331.84 222.4,342.9 230.44L376.08,254.55Q387.14 262.58,398.21 254.55L431.39,230.44Q442.45 222.4,431.39 214.37Z" /><path class="${getClass(faces.U[1])}" d="M251.84,280.53Q240.77 288.57,245 301.57L257.67,340.58Q261.9 353.58,272.96 345.54L306.14,321.43Q317.2 313.4,312.98 300.4L300.3,261.39Q296.08 248.39,285.02 256.42Z" /><path class="${getClass(faces.U[2])}" d="M292.46,447.63Q296.68 460.63,310.35 460.63L351.37,460.63Q365.04 460.63,360.82 447.63L348.14,408.62Q343.92 395.62,330.25 395.62L289.23,395.62Q275.56 395.62,279.78 408.62Z" /><path class="${getClass(faces.U[3])}" d="M463.93,460.63Q477.61 460.63,481.83 447.63L494.51,408.62Q498.73 395.62,485.06 395.62L444.04,395.62Q430.37 395.62,426.15 408.62L413.47,447.63Q409.25 460.63,422.92 460.63Z" /><path class="${getClass(faces.U[4])}" d="M529.29,301.57Q533.51 288.57,522.45 280.53L489.27,256.42Q478.21 248.39,473.99 261.39L461.31,300.4Q457.09 313.4,468.15 321.43L501.33,345.54Q512.39 353.58,516.62 340.58Z" /><path class="${getClass(faces.U[5])}" d="M338.85,233.38Q327.79 225.35,322.25 229.37L305.66,241.42Q300.13 245.44,304.36 258.44L317.03,297.45Q321.26 310.45,333.62 301.47L370.72,274.51Q383.09 265.53,372.03 257.49Z" /><path class="${getClass(faces.U[6])}" d="M274.51,350.31Q263.45 358.35,265.56 364.85L271.9,384.35Q274.01 390.85,287.68 390.85L328.7,390.85Q342.37 390.85,337.64 376.32L323.47,332.7Q318.75 318.17,307.69 326.2Z" /><path class="${getClass(faces.U[7])}" d="M365.83,447.63Q370.05 460.63,376.89 460.63L397.4,460.63Q404.23 460.63,408.46 447.63L421.13,408.62Q425.36 395.62,410.07 395.62L364.22,395.62Q348.93 395.62,353.16 408.62Z" /><path class="${getClass(faces.U[8])}" d="M486.61,390.85Q500.28 390.85,502.39 384.35L508.73,364.85Q510.84 358.35,499.78 350.31L466.6,326.2Q455.54 318.17,450.81 332.7L436.64,376.32Q431.92 390.85,445.59 390.85Z" /><path class="${getClass(faces.U[9])}" d="M469.93,258.44Q474.16 245.44,468.63 241.42L452.03,229.37Q446.5 225.35,435.44 233.38L402.26,257.49Q391.2 265.53,403.57 274.51L440.67,301.47Q453.03 310.45,457.26 297.45Z" /><path class="${getClass(faces.U[10])}" d="M399.51,280.1Q387.14 271.11,374.78 280.1L337.68,307.05Q325.31 316.03,330.04 330.57L344.21,374.18Q348.93 388.72,364.22 388.72L410.07,388.72Q425.36 388.72,430.08 374.18L444.25,330.57Q448.98 316.03,436.61 307.05Z" /><path class="${getClass(faces.R[0])}" d="M552.2,290.19Q538.53 290.19,534.3 303.2L521.63,342.21Q517.4 355.21,531.08 355.21L572.09,355.21Q585.76 355.21,589.99 342.21L602.66,303.2Q606.89 290.19,593.21 290.19Z" /><path class="${getClass(faces.R[1])}" d="M486.84,449.26Q482.62 462.26,493.68 470.3L526.86,494.41Q537.92 502.44,542.15 489.44L554.82,450.43Q559.05 437.43,547.99 429.39L514.8,405.29Q503.74 397.25,499.52 410.25Z" /><path class="${getClass(faces.R[2])}" d="M617.93,560.57Q628.99 568.61,640.05 560.57L673.23,536.46Q684.29 528.43,673.23 520.39L640.05,496.28Q628.99 488.25,617.93 496.28L584.75,520.39Q573.69 528.43,584.75 536.46Z" /><path class="${getClass(faces.R[3])}" d="M764.3,470.3Q775.36 462.26,771.13 449.26L758.46,410.25Q754.24 397.25,743.17 405.29L709.99,429.39Q698.93 437.43,703.16 450.43L715.83,489.44Q720.06 502.44,731.12 494.41Z" /><path class="${getClass(faces.R[4])}" d="M723.68,303.2Q719.45 290.19,705.78 290.19L664.76,290.19Q651.09 290.19,655.32 303.2L667.99,342.21Q672.22 355.21,685.89 355.21L726.9,355.21Q740.58 355.21,736.35 342.21Z" /><path class="${getClass(faces.R[5])}" d="M529.53,359.98Q515.85 359.98,513.74 366.48L507.41,385.98Q505.29 392.48,516.35 400.52L549.54,424.63Q560.6 432.66,565.32 418.13L579.49,374.51Q584.21 359.98,570.54 359.98Z" /><path class="${getClass(faces.R[6])}" d="M546.2,492.39Q541.98 505.39,547.51 509.41L564.1,521.46Q569.63 525.48,580.69 517.44L613.87,493.34Q624.93 485.3,612.57 476.32L575.47,449.36Q563.1 440.38,558.88 453.38Z" /><path class="${getClass(faces.R[7])}" d="M677.29,517.44Q688.35 525.48,693.88 521.46L710.47,509.41Q716 505.39,711.78 492.39L699.1,453.38Q694.88 440.38,682.51 449.36L645.41,476.32Q633.05 485.3,644.11 493.34Z" /><path class="${getClass(faces.R[8])}" d="M741.63,400.52Q752.69 392.48,750.57 385.98L744.24,366.48Q742.12 359.98,728.45 359.98L687.44,359.98Q673.77 359.98,678.49 374.51L692.66,418.13Q697.38 432.66,708.44 424.63Z" /><path class="${getClass(faces.R[9])}" d="M650.3,303.2Q646.08 290.19,639.24 290.19L618.74,290.19Q611.9 290.19,607.68 303.2L595,342.21Q590.78 355.21,606.06 355.21L651.92,355.21Q667.2 355.21,662.98 342.21Z" /><path class="${getClass(faces.R[10])}" d="M571.88,420.26Q567.16 434.79,579.52 443.78L616.62,470.73Q628.99 479.72,641.36 470.73L678.45,443.78Q690.82 434.79,686.1 420.26L671.93,376.65Q667.2 362.11,651.92 362.11L606.06,362.11Q590.78 362.11,586.05 376.65Z" /><path class="${getClass(faces.F[0])}" d="M481.83,478.91Q477.61 465.91,463.93 465.91L422.92,465.91Q409.25 465.91,413.47 478.91L426.15,517.92Q430.37 530.92,444.04 530.92L485.06,530.92Q498.73 530.92,494.51 517.92Z" /><path class="${getClass(faces.F[1])}" d="M310.35,465.91Q296.68 465.91,292.46 478.91L279.78,517.92Q275.56 530.92,289.23 530.92L330.25,530.92Q343.92 530.92,348.14 517.92L360.82,478.91Q365.04 465.91,351.37 465.91Z" /><path class="${getClass(faces.F[2])}" d="M245,624.97Q240.77 637.97,251.84 646.01L285.02,670.12Q296.08 678.15,300.3 665.15L312.98,626.14Q317.2 613.14,306.14 605.1L272.96,581Q261.9 572.96,257.67 585.96Z" /><path class="${getClass(faces.F[3])}" d="M376.08,736.28Q387.14 744.32,398.21 736.28L431.39,712.17Q442.45 704.14,431.39 696.1L398.21,671.99Q387.14 663.96,376.08 671.99L342.9,696.1Q331.84 704.14,342.9 712.17Z" /><path class="${getClass(faces.F[4])}" d="M522.45,646.01Q533.51 637.97,529.29 624.97L516.62,585.96Q512.39 572.96,501.33 581L468.15,605.1Q457.09 613.14,461.31 626.14L473.99,665.15Q478.21 678.15,489.27 670.12Z" /><path class="${getClass(faces.F[5])}" d="M408.46,478.91Q404.23 465.91,397.4 465.91L376.89,465.91Q370.05 465.91,365.83 478.91L353.16,517.92Q348.93 530.92,364.22 530.92L410.07,530.92Q425.36 530.92,421.13 517.92Z" /><path class="${getClass(faces.F[6])}" d="M287.68,535.69Q274.01 535.69,271.9 542.19L265.56,561.69Q263.45 568.19,274.51 576.23L307.69,600.34Q318.75 608.37,323.47 593.84L337.64,550.22Q342.37 535.69,328.7 535.69Z" /><path class="${getClass(faces.F[7])}" d="M304.36,668.1Q300.13 681.1,305.66 685.12L322.25,697.17Q327.79 701.19,338.85 693.15L372.03,669.05Q383.09 661.01,370.72 652.03L333.62,625.07Q321.26 616.09,317.03 629.09Z" /><path class="${getClass(faces.F[8])}" d="M435.44,693.15Q446.5 701.19,452.03 697.17L468.63,685.12Q474.16 681.1,469.93 668.1L457.26,629.09Q453.03 616.09,440.67 625.07L403.57,652.03Q391.2 661.01,402.26 669.05Z" /><path class="${getClass(faces.F[9])}" d="M499.78,576.23Q510.84 568.19,508.73 561.69L502.39,542.19Q500.28 535.69,486.61 535.69L445.59,535.69Q431.92 535.69,436.64 550.22L450.81,593.84Q455.54 608.37,466.6 600.34Z" /><path class="${getClass(faces.F[10])}" d="M330.04,595.97Q325.31 610.51,337.68 619.49L374.78,646.44Q387.14 655.43,399.51 646.44L436.61,619.49Q448.98 610.51,444.25 595.97L430.08,552.36Q425.36 537.82,410.07 537.82L364.22,537.82Q348.93 537.82,344.21 552.36Z" /><path class="${getClass(faces.L[0])}" d="M280.61,470.3Q291.67 462.26,287.44 449.26L274.77,410.25Q270.55 397.25,259.48 405.29L226.3,429.39Q215.24 437.43,219.47 450.43L232.14,489.44Q236.37 502.44,247.43 494.41Z" /><path class="${getClass(faces.L[1])}" d="M239.99,303.2Q235.76 290.19,222.09 290.19L181.07,290.19Q167.4 290.19,171.63 303.2L184.3,342.21Q188.53 355.21,202.2 355.21L243.21,355.21Q256.89 355.21,252.66 342.21Z" /><path class="${getClass(faces.L[2])}" d="M68.51,290.19Q54.84 290.19,50.61 303.2L37.94,342.21Q33.71 355.21,47.39 355.21L88.4,355.21Q102.07 355.21,106.3 342.21L118.97,303.2Q123.2 290.19,109.52 290.19Z" /><path class="${getClass(faces.L[3])}" d="M3.15,449.26Q-1.07 462.26,9.99 470.3L43.17,494.41Q54.23 502.44,58.46 489.44L71.13,450.43Q75.36 437.43,64.3 429.39L31.11,405.29Q20.05 397.25,15.83 410.25Z" /><path class="${getClass(faces.L[4])}" d="M134.24,560.57Q145.3 568.61,156.36 560.57L189.54,536.46Q200.6 528.43,189.54 520.39L156.36,496.28Q145.3 488.25,134.24 496.28L101.06,520.39Q90 528.43,101.06 536.46Z" /><path class="${getClass(faces.L[5])}" d="M257.94,400.52Q269 392.48,266.88 385.98L260.55,366.48Q258.43 359.98,244.76 359.98L203.75,359.98Q190.08 359.98,194.8 374.51L208.97,418.13Q213.69 432.66,224.75 424.63Z" /><path class="${getClass(faces.L[6])}" d="M166.61,303.2Q162.39 290.19,155.55 290.19L135.05,290.19Q128.21 290.19,123.98 303.2L111.31,342.21Q107.09 355.21,122.37 355.21L168.23,355.21Q183.51 355.21,179.29 342.21Z" /><path class="${getClass(faces.L[7])}" d="M45.84,359.98Q32.16 359.98,30.05 366.48L23.71,385.98Q21.6 392.48,32.66 400.52L65.85,424.63Q76.91 432.66,81.63 418.13L95.8,374.51Q100.52 359.98,86.85 359.98Z" /><path class="${getClass(faces.L[8])}" d="M62.51,492.39Q58.29 505.39,63.82 509.41L80.41,521.46Q85.94 525.48,97 517.44L130.18,493.34Q141.24 485.3,128.88 476.32L91.78,449.36Q79.41 440.38,75.19 453.38Z" /><path class="${getClass(faces.L[9])}" d="M193.6,517.44Q204.66 525.48,210.19 521.46L226.78,509.41Q232.31 505.39,228.09 492.39L215.41,453.38Q211.19 440.38,198.82 449.36L161.72,476.32Q149.36 485.3,160.42 493.34Z" /><path class="${getClass(faces.L[10])}" d="M88.19,420.26Q83.47 434.79,95.83 443.78L132.93,470.73Q145.3 479.72,157.67 470.73L194.76,443.78Q207.13 434.79,202.41 420.26L188.24,376.65Q183.51 362.11,168.23 362.11L122.37,362.11Q107.09 362.11,102.36 376.65Z" /><path class="${getClass(faces.BL[0])}" d="M226.62,276.27Q237.68 284.3,248.74 276.27L281.92,252.16Q292.98 244.12,281.92 236.08L248.74,211.98Q237.68 203.94,226.62 211.98L193.43,236.08Q182.37 244.12,193.43 252.16Z" /><path class="${getClass(faces.BL[1])}" d="M372.99,185.99Q384.05 177.96,379.82 164.95L367.15,125.95Q362.92 112.94,351.86 120.98L318.68,145.09Q307.62 153.12,311.84 166.13L324.52,205.13Q328.74 218.14,339.8 210.1Z" /><path class="${getClass(faces.BL[2])}" d="M332.36,18.89Q328.14 5.89,314.47 5.89L273.45,5.89Q259.78 5.89,264 18.89L276.68,57.9Q280.9 70.9,294.57 70.9L335.59,70.9Q349.26 70.9,345.04 57.9Z" /><path class="${getClass(faces.BL[3])}" d="M160.89,5.89Q147.21 5.89,142.99 18.89L130.32,57.9Q126.09 70.9,139.76 70.9L180.78,70.9Q194.45 70.9,198.67 57.9L211.35,18.89Q215.57 5.89,201.9 5.89Z" /><path class="${getClass(faces.BL[4])}" d="M95.53,164.95Q91.31 177.96,102.37 185.99L135.55,210.1Q146.61 218.14,150.83 205.13L163.51,166.13Q167.73 153.12,156.67 145.09L123.49,120.98Q112.43 112.94,108.21 125.95Z" /><path class="${getClass(faces.BL[5])}" d="M285.97,233.14Q297.04 241.17,302.57 237.16L319.16,225.1Q324.69 221.08,320.46 208.08L307.79,169.07Q303.56 156.07,291.2 165.06L254.1,192.01Q241.73 200.99,252.79 209.03Z" /><path class="${getClass(faces.BL[6])}" d="M350.31,116.21Q361.37 108.18,359.26 101.67L352.92,82.17Q350.81 75.67,337.14 75.67L296.12,75.67Q282.45 75.67,287.18 90.21L301.35,133.82Q306.07 148.36,317.13 140.32Z" /><path class="${getClass(faces.BL[7])}" d="M258.99,18.89Q254.77 5.89,247.93 5.89L227.42,5.89Q220.59 5.89,216.36 18.89L203.69,57.9Q199.46 70.9,214.75 70.9L260.6,70.9Q275.89 70.9,271.66 57.9Z" /><path class="${getClass(faces.BL[8])}" d="M138.21,75.67Q124.54 75.67,122.43 82.17L116.09,101.67Q113.98 108.18,125.04 116.21L158.22,140.32Q169.28 148.36,174.01 133.82L188.18,90.21Q192.9 75.67,179.23 75.67Z" /><path class="${getClass(faces.BL[9])}" d="M154.89,208.08Q150.67 221.08,156.2 225.1L172.79,237.16Q178.32 241.17,189.38 233.14L222.56,209.03Q233.62 200.99,221.25 192.01L184.16,165.06Q171.79 156.07,167.56 169.07Z" /><path class="${getClass(faces.BL[10])}" d="M180.57,135.95Q175.85 150.49,188.21 159.47L225.31,186.43Q237.68 195.41,250.04 186.43L287.14,159.47Q299.51 150.49,294.78 135.95L280.61,92.34Q275.89 77.8,260.6 77.8L214.75,77.8Q199.46 77.8,194.74 92.34Z" /><path class="${getClass(faces.BR[0])}" d="M394.47,164.95Q390.24 177.96,401.3 185.99L434.49,210.1Q445.55 218.14,449.77 205.13L462.45,166.13Q466.67 153.12,455.61 145.09L422.43,120.98Q411.37 112.94,407.14 125.95Z" /><path class="${getClass(faces.BR[1])}" d="M525.55,276.27Q536.61 284.3,547.67 276.27L580.86,252.16Q591.92 244.12,580.86 236.08L547.67,211.98Q536.61 203.94,525.55 211.98L492.37,236.08Q481.31 244.12,492.37 252.16Z" /><path class="${getClass(faces.BR[2])}" d="M671.92,185.99Q682.98 177.96,678.76 164.95L666.08,125.95Q661.86 112.94,650.8 120.98L617.62,145.09Q606.56 153.12,610.78 166.13L623.45,205.13Q627.68 218.14,638.74 210.1Z" /><path class="${getClass(faces.BR[3])}" d="M631.3,18.89Q627.07 5.89,613.4 5.89L572.39,5.89Q558.72 5.89,562.94 18.89L575.62,57.9Q579.84 70.9,593.51 70.9L634.53,70.9Q648.2 70.9,643.97 57.9Z" /><path class="${getClass(faces.BR[4])}" d="M459.82,5.89Q446.15 5.89,441.93 18.89L429.25,57.9Q425.03 70.9,438.7 70.9L479.71,70.9Q493.39 70.9,497.61 57.9L510.29,18.89Q514.51 5.89,500.84 5.89Z" /><path class="${getClass(faces.BR[5])}" d="M453.83,208.08Q449.6 221.08,455.13 225.1L471.72,237.16Q477.25 241.17,488.31 233.14L521.5,209.03Q532.56 200.99,520.19 192.01L483.09,165.06Q470.73 156.07,466.5 169.07Z" /><path class="${getClass(faces.BR[6])}" d="M584.91,233.14Q595.97 241.17,601.5 237.16L618.09,225.1Q623.62 221.08,619.4 208.08L606.72,169.07Q602.5 156.07,590.13 165.06L553.04,192.01Q540.67 200.99,551.73 209.03Z" /><path class="${getClass(faces.BR[7])}" d="M649.25,116.21Q660.31 108.18,658.2 101.67L651.86,82.17Q649.75 75.67,636.08 75.67L595.06,75.67Q581.39 75.67,586.11 90.21L600.28,133.82Q605.01 148.36,616.07 140.32Z" /><path class="${getClass(faces.BR[8])}" d="M557.93,18.89Q553.7 5.89,546.87 5.89L526.36,5.89Q519.52 5.89,515.3 18.89L502.62,57.9Q498.4 70.9,513.68 70.9L559.54,70.9Q574.83 70.9,570.6 57.9Z" /><path class="${getClass(faces.BR[9])}" d="M437.15,75.67Q423.48 75.67,421.37 82.17L415.03,101.67Q412.92 108.18,423.98 116.21L457.16,140.32Q468.22 148.36,472.94 133.82L487.11,90.21Q491.84 75.67,478.17 75.67Z" /><path class="${getClass(faces.BR[10])}" d="M479.51,135.95Q474.78 150.49,487.15 159.47L524.25,186.43Q536.61 195.41,548.98 186.43L586.08,159.47Q598.44 150.49,593.72 135.95L579.55,92.34Q574.83 77.8,559.54 77.8L513.68,77.8Q498.4 77.8,493.68 92.34Z" /><path class="${getClass(faces.D[0])}" d="M1102.3,560.17Q1113.36 568.2,1124.42 560.17L1157.6,536.06Q1168.66 528.02,1157.6 519.99L1124.42,495.88Q1113.36 487.84,1102.3 495.88L1069.11,519.99Q1058.05 528.02,1069.11 536.06Z" /><path class="${getClass(faces.D[1])}" d="M1248.67,469.89Q1259.73 461.86,1255.5 448.86L1242.83,409.85Q1238.6 396.85,1227.54 404.88L1194.36,428.99Q1183.3 437.03,1187.52 450.03L1200.2,489.04Q1204.42 502.04,1215.48 494Z" /><path class="${getClass(faces.D[2])}" d="M1208.04,302.79Q1203.82 289.79,1190.15 289.79L1149.13,289.79Q1135.46 289.79,1139.68 302.79L1152.36,341.8Q1156.58 354.8,1170.25 354.8L1211.27,354.8Q1224.94 354.8,1220.72 341.8Z" /><path class="${getClass(faces.D[3])}" d="M1036.57,289.79Q1022.89 289.79,1018.67 302.79L1006,341.8Q1001.77 354.8,1015.44 354.8L1056.46,354.8Q1070.13 354.8,1074.35 341.8L1087.03,302.79Q1091.25 289.79,1077.58 289.79Z" /><path class="${getClass(faces.D[4])}" d="M971.21,448.86Q966.99 461.86,978.05 469.89L1011.23,494Q1022.29 502.04,1026.51 489.04L1039.19,450.03Q1043.41 437.03,1032.35 428.99L999.17,404.88Q988.11 396.85,983.89 409.85Z" /><path class="${getClass(faces.D[5])}" d="M1194.84,509Q1200.37 504.99,1196.14 491.98L1183.47,452.98Q1179.24 439.97,1166.88 448.96L1129.78,475.91Q1117.41 484.9,1128.47 492.93L1161.65,517.04Q1172.72 525.08,1178.25 521.06Z" /><path class="${getClass(faces.D[6])}" d="M1228.6,366.07Q1226.49 359.57,1212.82 359.57L1171.8,359.57Q1158.13 359.57,1162.86 374.11L1177.03,417.72Q1181.75 432.26,1192.81 424.22L1225.99,400.11Q1237.05 392.08,1234.94 385.58Z" /><path class="${getClass(faces.D[7])}" d="M1103.1,289.79Q1096.27 289.79,1092.04 302.79L1079.37,341.8Q1075.14 354.8,1090.43 354.8L1136.28,354.8Q1151.57 354.8,1147.35 341.8L1134.67,302.79Q1130.45 289.79,1123.61 289.79Z" /><path class="${getClass(faces.D[8])}" d="M991.77,385.58Q989.66 392.08,1000.72 400.11L1033.9,424.22Q1044.96 432.26,1049.69 417.72L1063.86,374.11Q1068.58 359.57,1054.91 359.57L1013.89,359.57Q1000.22 359.57,998.11 366.07Z" /><path class="${getClass(faces.D[9])}" d="M1048.47,521.06Q1054 525.08,1065.06 517.04L1098.24,492.93Q1109.3 484.9,1096.93 475.91L1059.84,448.96Q1047.47 439.97,1043.24 452.98L1030.57,491.98Q1026.35 504.99,1031.88 509Z" /><path class="${getClass(faces.D[10])}" d="M1156.29,376.24Q1151.57 361.7,1136.28 361.7L1090.43,361.7Q1075.14 361.7,1070.42 376.24L1056.25,419.85Q1051.53 434.39,1063.89 443.37L1100.99,470.33Q1113.36 479.31,1125.72 470.33L1162.82,443.37Q1175.19 434.39,1170.46 419.85Z" /><path class="${getClass(faces.DL[0])}" d="M1273.57,473.72Q1262.51 465.69,1251.45 473.72L1218.27,497.83Q1207.21 505.87,1218.27 513.91L1251.45,538.01Q1262.51 546.05,1273.57 538.01L1306.75,513.91Q1317.81 505.87,1306.75 497.83Z" /><path class="${getClass(faces.DL[1])}" d="M1127.2,564Q1116.14 572.03,1120.36 585.04L1133.04,624.04Q1137.26 637.05,1148.32 629.01L1181.51,604.9Q1192.57 596.87,1188.34 583.86L1175.67,544.86Q1171.44 531.85,1160.38 539.89Z" /><path class="${getClass(faces.DL[2])}" d="M1167.82,731.1Q1172.05 744.1,1185.72 744.1L1226.73,744.1Q1240.41 744.1,1236.18 731.1L1223.51,692.09Q1219.28 679.09,1205.61 679.09L1164.6,679.09Q1150.92 679.09,1155.15 692.09Z" /><path class="${getClass(faces.DL[3])}" d="M1339.3,744.1Q1352.97 744.1,1357.2 731.1L1369.87,692.09Q1374.09 679.09,1360.42 679.09L1319.41,679.09Q1305.74 679.09,1301.51 692.09L1288.84,731.1Q1284.61 744.1,1298.28 744.1Z" /><path class="${getClass(faces.DL[4])}" d="M1404.65,585.04Q1408.88 572.03,1397.82 564L1364.64,539.89Q1353.58 531.85,1349.35 544.86L1336.68,583.86Q1332.45 596.87,1343.51 604.9L1376.69,629.01Q1387.76 637.05,1391.98 624.04Z" /><path class="${getClass(faces.DL[5])}" d="M1181.03,524.89Q1175.5 528.91,1179.72 541.91L1192.4,580.92Q1196.62 593.92,1208.99 584.93L1246.09,557.98Q1258.45 549,1247.39 540.96L1214.21,516.85Q1203.15 508.82,1197.62 512.83Z" /><path class="${getClass(faces.DL[6])}" d="M1147.26,667.82Q1149.37 674.32,1163.05 674.32L1204.06,674.32Q1217.73 674.32,1213.01 659.78L1198.84,616.17Q1194.12 601.63,1183.05 609.67L1149.87,633.78Q1138.81 641.81,1140.92 648.32Z" /><path class="${getClass(faces.DL[7])}" d="M1272.76,744.1Q1279.6 744.1,1283.82 731.1L1296.5,692.09Q1300.72 679.09,1285.44 679.09L1239.58,679.09Q1224.3 679.09,1228.52 692.09L1241.19,731.1Q1245.42 744.1,1252.26 744.1Z" /><path class="${getClass(faces.DL[8])}" d="M1384.09,648.32Q1386.21 641.81,1375.15 633.78L1341.96,609.67Q1330.9 601.63,1326.18 616.17L1312.01,659.78Q1307.29 674.32,1320.96 674.32L1361.97,674.32Q1375.64 674.32,1377.76 667.82Z" /><path class="${getClass(faces.DL[9])}" d="M1327.4,512.83Q1321.87 508.82,1310.81 516.85L1277.63,540.96Q1266.56 549,1278.93 557.98L1316.03,584.93Q1328.4 593.92,1332.62 580.92L1345.3,541.91Q1349.52 528.91,1343.99 524.89Z" /><path class="${getClass(faces.DL[10])}" d="M1285.44,672.19Q1300.72 672.19,1305.45 657.65L1319.62,614.04Q1324.34 599.5,1311.97 590.52L1274.88,563.56Q1262.51 554.58,1250.14 563.56L1213.04,590.52Q1200.68 599.5,1205.4 614.04L1219.57,657.65Q1224.3 672.19,1239.58 672.19Z" /><path class="${getClass(faces.DR[0])}" d="M1106.35,585.04Q1110.57 572.03,1099.51 564L1066.33,539.89Q1055.27 531.85,1051.05 544.86L1038.37,583.86Q1034.15 596.87,1045.21 604.9L1078.39,629.01Q1089.45 637.05,1093.67 624.04Z" /><path class="${getClass(faces.DR[1])}" d="M975.26,473.72Q964.2 465.69,953.14 473.72L919.96,497.83Q908.9 505.87,919.96 513.91L953.14,538.01Q964.2 546.05,975.26 538.01L1008.45,513.91Q1019.51 505.87,1008.45 497.83Z" /><path class="${getClass(faces.DR[2])}" d="M828.89,564Q817.83 572.03,822.06 585.04L834.73,624.04Q838.96 637.05,850.02 629.01L883.2,604.9Q894.26 596.87,890.04 583.86L877.36,544.86Q873.14 531.85,862.08 539.89Z" /><path class="${getClass(faces.DR[3])}" d="M869.52,731.1Q873.74 744.1,887.41 744.1L928.43,744.1Q942.1 744.1,937.88 731.1L925.2,692.09Q920.98 679.09,907.3 679.09L866.29,679.09Q852.62 679.09,856.84 692.09Z" /><path class="${getClass(faces.DR[4])}" d="M1040.99,744.1Q1054.66 744.1,1058.89 731.1L1071.56,692.09Q1075.79 679.09,1062.12 679.09L1021.1,679.09Q1007.43 679.09,1003.21 692.09L990.53,731.1Q986.31 744.1,999.98 744.1Z" /><path class="${getClass(faces.DR[5])}" d="M1029.09,512.83Q1023.56 508.82,1012.5 516.85L979.32,540.96Q968.26 549,980.63 557.98L1017.72,584.93Q1030.09 593.92,1034.31 580.92L1046.99,541.91Q1051.21 528.91,1045.68 524.89Z" /><path class="${getClass(faces.DR[6])}" d="M882.72,524.89Q877.19 528.91,881.42 541.91L894.09,580.92Q898.32 593.92,910.68 584.93L947.78,557.98Q960.15 549,949.09 540.96L915.9,516.85Q904.84 508.82,899.31 512.83Z" /><path class="${getClass(faces.DR[7])}" d="M848.96,667.82Q851.07 674.32,864.74 674.32L905.76,674.32Q919.43 674.32,914.7 659.78L900.53,616.17Q895.81 601.63,884.75 609.67L851.57,633.78Q840.51 641.81,842.62 648.32Z" /><path class="${getClass(faces.DR[8])}" d="M974.46,744.1Q981.29 744.1,985.52 731.1L998.19,692.09Q1002.42 679.09,987.13 679.09L941.28,679.09Q925.99 679.09,930.21 692.09L942.89,731.1Q947.11 744.1,953.95 744.1Z" /><path class="${getClass(faces.DR[9])}" d="M1085.79,648.32Q1087.9 641.81,1076.84 633.78L1043.66,609.67Q1032.6 601.63,1027.87 616.17L1013.7,659.78Q1008.98 674.32,1022.65 674.32L1063.67,674.32Q1077.34 674.32,1079.45 667.82Z" /><path class="${getClass(faces.DR[10])}" d="M987.13,672.19Q1002.42 672.19,1007.14 657.65L1021.31,614.04Q1026.03 599.5,1013.67 590.52L976.57,563.56Q964.2 554.58,951.84 563.56L914.74,590.52Q902.37 599.5,907.1 614.04L921.27,657.65Q925.99 672.19,941.28 672.19Z" /><path class="${getClass(faces.DBR[0])}" d="M948.81,460.4Q962.48 460.4,966.71 447.39L979.38,408.39Q983.61 395.38,969.94 395.38L928.92,395.38Q915.25 395.38,911.02 408.39L898.35,447.39Q894.12 460.4,907.8 460.4Z" /><path class="${getClass(faces.DBR[1])}" d="M1014.17,301.33Q1018.39 288.33,1007.33 280.29L974.15,256.18Q963.09 248.15,958.86 261.15L946.19,300.16Q941.96 313.16,953.03 321.2L986.21,345.3Q997.27 353.34,1001.49 340.34Z" /><path class="${getClass(faces.DBR[2])}" d="M883.08,190.02Q872.02 181.98,860.96 190.02L827.78,214.13Q816.72 222.16,827.78 230.2L860.96,254.31Q872.02 262.34,883.08 254.31L916.26,230.2Q927.33 222.16,916.26 214.13Z" /><path class="${getClass(faces.DBR[3])}" d="M736.71,280.29Q725.65 288.33,729.88 301.33L742.55,340.34Q746.78 353.34,757.84 345.3L791.02,321.2Q802.08 313.16,797.85 300.16L785.18,261.15Q780.96 248.15,769.89 256.18Z" /><path class="${getClass(faces.DBR[4])}" d="M777.34,447.39Q781.56 460.4,795.23 460.4L836.25,460.4Q849.92 460.4,845.69 447.39L833.02,408.39Q828.79 395.38,815.12 395.38L774.11,395.38Q760.44 395.38,764.66 408.39Z" /><path class="${getClass(faces.DBR[5])}" d="M993.61,364.61Q995.72 358.11,984.66 350.07L951.48,325.96Q940.42 317.93,935.69 332.47L921.52,376.08Q916.8 390.61,930.47 390.61L971.48,390.61Q985.16 390.61,987.27 384.11Z" /><path class="${getClass(faces.DBR[6])}" d="M936.91,229.13Q931.38 225.11,920.32 233.15L887.14,257.25Q876.08 265.29,888.44 274.27L925.54,301.23Q937.91 310.21,942.13 297.21L954.81,258.2Q959.03 245.2,953.5 241.18Z" /><path class="${getClass(faces.DBR[7])}" d="M790.54,241.18Q785.01 245.2,789.24 258.2L801.91,297.21Q806.13 310.21,818.5 301.23L855.6,274.27Q867.97 265.29,856.91 257.25L823.72,233.15Q812.66 225.11,807.13 229.13Z" /><path class="${getClass(faces.DBR[8])}" d="M756.77,384.11Q758.89 390.61,772.56 390.61L813.57,390.61Q827.25 390.61,822.52 376.08L808.35,332.47Q803.63 317.93,792.57 325.96L759.39,350.07Q748.32 358.11,750.44 364.61Z" /><path class="${getClass(faces.DBR[9])}" d="M882.28,460.4Q889.11 460.4,893.34 447.39L906.01,408.39Q910.24 395.38,894.95 395.38L849.09,395.38Q833.81 395.38,838.03 408.39L850.71,447.39Q854.93 460.4,861.77 460.4Z" /><path class="${getClass(faces.DBR[10])}" d="M894.95,388.48Q910.24 388.48,914.96 373.95L929.13,330.33Q933.85 315.8,921.49 306.81L884.39,279.86Q872.02 270.87,859.66 279.86L822.56,306.81Q810.19 315.8,814.91 330.33L829.08,373.95Q833.81 388.48,849.09 388.48Z" /><path class="${getClass(faces.B[0])}" d="M1018.67,272.05Q1022.89 285.06,1036.57 285.06L1077.58,285.06Q1091.25 285.06,1087.03 272.05L1074.35,233.05Q1070.13 220.04,1056.46 220.04L1015.44,220.04Q1001.77 220.04,1006 233.05Z" /><path class="${getClass(faces.B[1])}" d="M1190.15,285.06Q1203.82 285.06,1208.04 272.05L1220.72,233.05Q1224.94 220.04,1211.27 220.04L1170.25,220.04Q1156.58 220.04,1152.36 233.05L1139.68,272.05Q1135.46 285.06,1149.13 285.06Z" /><path class="${getClass(faces.B[2])}" d="M1255.5,125.99Q1259.73 112.99,1248.67 104.95L1215.48,80.84Q1204.42 72.81,1200.2 85.81L1187.52,124.82Q1183.3 137.82,1194.36 145.86L1227.54,169.96Q1238.6 178,1242.83 165Z" /><path class="${getClass(faces.B[3])}" d="M1124.42,14.68Q1113.36 6.64,1102.3 14.68L1069.11,38.79Q1058.05 46.82,1069.11 54.86L1102.3,78.97Q1113.36 87,1124.42 78.97L1157.6,54.86Q1168.66 46.82,1157.6 38.79Z" /><path class="${getClass(faces.B[4])}" d="M978.05,104.95Q966.99 112.99,971.21 125.99L983.89,165Q988.11 178,999.17 169.96L1032.35,145.86Q1043.41 137.82,1039.19 124.82L1026.51,85.81Q1022.29 72.81,1011.23 80.84Z" /><path class="${getClass(faces.B[5])}" d="M1123.61,285.06Q1130.45 285.06,1134.67 272.05L1147.35,233.05Q1151.57 220.04,1136.28 220.04L1090.43,220.04Q1075.14 220.04,1079.37 233.05L1092.04,272.05Q1096.27 285.06,1103.1 285.06Z" /><path class="${getClass(faces.B[6])}" d="M1234.94,189.27Q1237.05 182.77,1225.99 174.73L1192.81,150.62Q1181.75 142.59,1177.03 157.13L1162.86,200.74Q1158.13 215.27,1171.8 215.27L1212.82,215.27Q1226.49 215.27,1228.6 208.77Z" /><path class="${getClass(faces.B[7])}" d="M1178.25,53.79Q1172.72 49.77,1161.65 57.81L1128.47,81.91Q1117.41 89.95,1129.78 98.94L1166.88,125.89Q1179.24 134.87,1183.47 121.87L1196.14,82.86Q1200.37 69.86,1194.84 65.84Z" /><path class="${getClass(faces.B[8])}" d="M1031.88,65.84Q1026.35 69.86,1030.57 82.86L1043.24,121.87Q1047.47 134.87,1059.84 125.89L1096.93,98.94Q1109.3 89.95,1098.24 81.91L1065.06,57.81Q1054 49.77,1048.47 53.79Z" /><path class="${getClass(faces.B[9])}" d="M998.11,208.77Q1000.22 215.27,1013.89 215.27L1054.91,215.27Q1068.58 215.27,1063.86 200.74L1049.69,157.13Q1044.96 142.59,1033.9 150.62L1000.72,174.73Q989.66 182.77,991.77 189.27Z" /><path class="${getClass(faces.B[10])}" d="M1136.28,213.14Q1151.57 213.14,1156.29 198.61L1170.46,154.99Q1175.19 140.46,1162.82 131.47L1125.72,104.52Q1113.36 95.53,1100.99 104.52L1063.89,131.47Q1051.53 140.46,1056.25 154.99L1070.42,198.61Q1075.14 213.14,1090.43 213.14Z" /><path class="${getClass(faces.DBL[0])}" d="M1219.38,280.29Q1208.32 288.33,1212.55 301.33L1225.22,340.34Q1229.44 353.34,1240.51 345.3L1273.69,321.2Q1284.75 313.16,1280.52 300.16L1267.85,261.15Q1263.62 248.15,1252.56 256.18Z" /><path class="${getClass(faces.DBL[1])}" d="M1260,447.39Q1264.23 460.4,1277.9 460.4L1318.92,460.4Q1332.59 460.4,1328.36 447.39L1315.69,408.39Q1311.46 395.38,1297.79 395.38L1256.78,395.38Q1243.1 395.38,1247.33 408.39Z" /><path class="${getClass(faces.DBL[2])}" d="M1431.48,460.4Q1445.15 460.4,1449.38 447.39L1462.05,408.39Q1466.28 395.38,1452.6 395.38L1411.59,395.38Q1397.92 395.38,1393.69 408.39L1381.02,447.39Q1376.79 460.4,1390.47 460.4Z" /><path class="${getClass(faces.DBL[3])}" d="M1496.84,301.33Q1501.06 288.33,1490 280.29L1456.82,256.18Q1445.76 248.15,1441.53 261.15L1428.86,300.16Q1424.63 313.16,1435.69 321.2L1468.88,345.3Q1479.94 353.34,1484.16 340.34Z" /><path class="${getClass(faces.DBL[4])}" d="M1365.75,190.02Q1354.69 181.98,1343.63 190.02L1310.45,214.13Q1299.39 222.16,1310.45 230.2L1343.63,254.31Q1354.69 262.34,1365.75 254.31L1398.93,230.2Q1409.99 222.16,1398.93 214.13Z" /><path class="${getClass(faces.DBL[5])}" d="M1239.44,384.11Q1241.56 390.61,1255.23 390.61L1296.24,390.61Q1309.91 390.61,1305.19 376.08L1291.02,332.47Q1286.3 317.93,1275.24 325.96L1242.05,350.07Q1230.99 358.11,1233.11 364.61Z" /><path class="${getClass(faces.DBL[6])}" d="M1364.94,460.4Q1371.78 460.4,1376.01 447.39L1388.68,408.39Q1392.9 395.38,1377.62 395.38L1331.76,395.38Q1316.48 395.38,1320.7 408.39L1333.38,447.39Q1337.6 460.4,1344.44 460.4Z" /><path class="${getClass(faces.DBL[7])}" d="M1476.28,364.61Q1478.39 358.11,1467.33 350.07L1434.14,325.96Q1423.08 317.93,1418.36 332.47L1404.19,376.08Q1399.47 390.61,1413.14 390.61L1454.15,390.61Q1467.83 390.61,1469.94 384.11Z" /><path class="${getClass(faces.DBL[8])}" d="M1419.58,229.13Q1414.05 225.11,1402.99 233.15L1369.81,257.25Q1358.75 265.29,1371.11 274.27L1408.21,301.23Q1420.58 310.21,1424.8 297.21L1437.48,258.2Q1441.7 245.2,1436.17 241.18Z" /><path class="${getClass(faces.DBL[9])}" d="M1273.21,241.18Q1267.68 245.2,1271.9 258.2L1284.58,297.21Q1288.8 310.21,1301.17 301.23L1338.27,274.27Q1350.63 265.29,1339.57 257.25L1306.39,233.15Q1295.33 225.11,1289.8 229.13Z" /><path class="${getClass(faces.DBL[10])}" d="M1377.62,388.48Q1392.9 388.48,1397.63 373.95L1411.8,330.33Q1416.52 315.8,1404.16 306.81L1367.06,279.86Q1354.69 270.87,1342.32 279.86L1305.23,306.81Q1292.86 315.8,1297.58 330.33L1311.75,373.95Q1316.48 388.48,1331.76 388.48Z" /><text x="387" y="342.75" font-size="75" class="c12">U</text><text x="387" y="599.8" font-size="75" class="c13">F</text></svg>`;
+        const classMap = new Map();
+        const paths = [
+            [
+                getClass(faces.U[0]),
+                `<path d = "M398.21,190.26Q387.14 182.22,376.08 190.26L342.9,214.37Q331.84 222.4,342.9 230.44L376.08,254.55Q387.14 262.58,398.21 254.55L431.39,230.44Q442.45 222.4,431.39 214.37Z" />`,
+            ],
+            [
+                getClass(faces.U[1]),
+                `<path d="M251.84,280.53Q240.77 288.57,245 301.57L257.67,340.58Q261.9 353.58,272.96 345.54L306.14,321.43Q317.2 313.4,312.98 300.4L300.3,261.39Q296.08 248.39,285.02 256.42Z" />`,
+            ],
+            [
+                getClass(faces.U[2]),
+                `<path d="M292.46,447.63Q296.68 460.63,310.35 460.63L351.37,460.63Q365.04 460.63,360.82 447.63L348.14,408.62Q343.92 395.62,330.25 395.62L289.23,395.62Q275.56 395.62,279.78 408.62Z" />`,
+            ],
+            [
+                getClass(faces.U[3]),
+                `<path d="M463.93,460.63Q477.61 460.63,481.83 447.63L494.51,408.62Q498.73 395.62,485.06 395.62L444.04,395.62Q430.37 395.62,426.15 408.62L413.47,447.63Q409.25 460.63,422.92 460.63Z" />`,
+            ],
+            [
+                getClass(faces.U[4]),
+                `<path d="M529.29,301.57Q533.51 288.57,522.45 280.53L489.27,256.42Q478.21 248.39,473.99 261.39L461.31,300.4Q457.09 313.4,468.15 321.43L501.33,345.54Q512.39 353.58,516.62 340.58Z" />`,
+            ],
+            [
+                getClass(faces.U[5]),
+                `<path d="M338.85,233.38Q327.79 225.35,322.25 229.37L305.66,241.42Q300.13 245.44,304.36 258.44L317.03,297.45Q321.26 310.45,333.62 301.47L370.72,274.51Q383.09 265.53,372.03 257.49Z" />`,
+            ],
+            [
+                getClass(faces.U[6]),
+                `<path d="M274.51,350.31Q263.45 358.35,265.56 364.85L271.9,384.35Q274.01 390.85,287.68 390.85L328.7,390.85Q342.37 390.85,337.64 376.32L323.47,332.7Q318.75 318.17,307.69 326.2Z" />`,
+            ],
+            [
+                getClass(faces.U[7]),
+                `<path d="M365.83,447.63Q370.05 460.63,376.89 460.63L397.4,460.63Q404.23 460.63,408.46 447.63L421.13,408.62Q425.36 395.62,410.07 395.62L364.22,395.62Q348.93 395.62,353.16 408.62Z" />`,
+            ],
+            [
+                getClass(faces.U[8]),
+                `<path d="M486.61,390.85Q500.28 390.85,502.39 384.35L508.73,364.85Q510.84 358.35,499.78 350.31L466.6,326.2Q455.54 318.17,450.81 332.7L436.64,376.32Q431.92 390.85,445.59 390.85Z" />`,
+            ],
+            [
+                getClass(faces.U[9]),
+                `<path d="M469.93,258.44Q474.16 245.44,468.63 241.42L452.03,229.37Q446.5 225.35,435.44 233.38L402.26,257.49Q391.2 265.53,403.57 274.51L440.67,301.47Q453.03 310.45,457.26 297.45Z" />`,
+            ],
+            [
+                getClass(faces.U[10]),
+                `<path d="M399.51,280.1Q387.14 271.11,374.78 280.1L337.68,307.05Q325.31 316.03,330.04 330.57L344.21,374.18Q348.93 388.72,364.22 388.72L410.07,388.72Q425.36 388.72,430.08 374.18L444.25,330.57Q448.98 316.03,436.61 307.05Z" />`,
+            ],
+            [
+                getClass(faces.R[0]),
+                `<path d="M552.2,290.19Q538.53 290.19,534.3 303.2L521.63,342.21Q517.4 355.21,531.08 355.21L572.09,355.21Q585.76 355.21,589.99 342.21L602.66,303.2Q606.89 290.19,593.21 290.19Z" />`,
+            ],
+            [
+                getClass(faces.R[1]),
+                `<path d="M486.84,449.26Q482.62 462.26,493.68 470.3L526.86,494.41Q537.92 502.44,542.15 489.44L554.82,450.43Q559.05 437.43,547.99 429.39L514.8,405.29Q503.74 397.25,499.52 410.25Z" />`,
+            ],
+            [
+                getClass(faces.R[2]),
+                `<path d="M617.93,560.57Q628.99 568.61,640.05 560.57L673.23,536.46Q684.29 528.43,673.23 520.39L640.05,496.28Q628.99 488.25,617.93 496.28L584.75,520.39Q573.69 528.43,584.75 536.46Z" />`,
+            ],
+            [
+                getClass(faces.R[3]),
+                `<path d="M764.3,470.3Q775.36 462.26,771.13 449.26L758.46,410.25Q754.24 397.25,743.17 405.29L709.99,429.39Q698.93 437.43,703.16 450.43L715.83,489.44Q720.06 502.44,731.12 494.41Z" />`,
+            ],
+            [
+                getClass(faces.R[4]),
+                `<path d="M723.68,303.2Q719.45 290.19,705.78 290.19L664.76,290.19Q651.09 290.19,655.32 303.2L667.99,342.21Q672.22 355.21,685.89 355.21L726.9,355.21Q740.58 355.21,736.35 342.21Z" />`,
+            ],
+            [
+                getClass(faces.R[5]),
+                `<path d="M529.53,359.98Q515.85 359.98,513.74 366.48L507.41,385.98Q505.29 392.48,516.35 400.52L549.54,424.63Q560.6 432.66,565.32 418.13L579.49,374.51Q584.21 359.98,570.54 359.98Z" />`,
+            ],
+            [
+                getClass(faces.R[6]),
+                `<path d="M546.2,492.39Q541.98 505.39,547.51 509.41L564.1,521.46Q569.63 525.48,580.69 517.44L613.87,493.34Q624.93 485.3,612.57 476.32L575.47,449.36Q563.1 440.38,558.88 453.38Z" />`,
+            ],
+            [
+                getClass(faces.R[7]),
+                `<path d="M677.29,517.44Q688.35 525.48,693.88 521.46L710.47,509.41Q716 505.39,711.78 492.39L699.1,453.38Q694.88 440.38,682.51 449.36L645.41,476.32Q633.05 485.3,644.11 493.34Z" />`,
+            ],
+            [
+                getClass(faces.R[8]),
+                `<path d="M741.63,400.52Q752.69 392.48,750.57 385.98L744.24,366.48Q742.12 359.98,728.45 359.98L687.44,359.98Q673.77 359.98,678.49 374.51L692.66,418.13Q697.38 432.66,708.44 424.63Z" />`,
+            ],
+            [
+                getClass(faces.R[9]),
+                `<path d="M650.3,303.2Q646.08 290.19,639.24 290.19L618.74,290.19Q611.9 290.19,607.68 303.2L595,342.21Q590.78 355.21,606.06 355.21L651.92,355.21Q667.2 355.21,662.98 342.21Z" />`,
+            ],
+            [
+                getClass(faces.R[10]),
+                `<path d="M571.88,420.26Q567.16 434.79,579.52 443.78L616.62,470.73Q628.99 479.72,641.36 470.73L678.45,443.78Q690.82 434.79,686.1 420.26L671.93,376.65Q667.2 362.11,651.92 362.11L606.06,362.11Q590.78 362.11,586.05 376.65Z" />`,
+            ],
+            [
+                getClass(faces.F[0]),
+                `<path d="M481.83,478.91Q477.61 465.91,463.93 465.91L422.92,465.91Q409.25 465.91,413.47 478.91L426.15,517.92Q430.37 530.92,444.04 530.92L485.06,530.92Q498.73 530.92,494.51 517.92Z" />`,
+            ],
+            [
+                getClass(faces.F[1]),
+                `<path d="M310.35,465.91Q296.68 465.91,292.46 478.91L279.78,517.92Q275.56 530.92,289.23 530.92L330.25,530.92Q343.92 530.92,348.14 517.92L360.82,478.91Q365.04 465.91,351.37 465.91Z" />`,
+            ],
+            [
+                getClass(faces.F[2]),
+                `<path d="M245,624.97Q240.77 637.97,251.84 646.01L285.02,670.12Q296.08 678.15,300.3 665.15L312.98,626.14Q317.2 613.14,306.14 605.1L272.96,581Q261.9 572.96,257.67 585.96Z" />`,
+            ],
+            [
+                getClass(faces.F[3]),
+                `<path d="M376.08,736.28Q387.14 744.32,398.21 736.28L431.39,712.17Q442.45 704.14,431.39 696.1L398.21,671.99Q387.14 663.96,376.08 671.99L342.9,696.1Q331.84 704.14,342.9 712.17Z" />`,
+            ],
+            [
+                getClass(faces.F[4]),
+                `<path d="M522.45,646.01Q533.51 637.97,529.29 624.97L516.62,585.96Q512.39 572.96,501.33 581L468.15,605.1Q457.09 613.14,461.31 626.14L473.99,665.15Q478.21 678.15,489.27 670.12Z" />`,
+            ],
+            [
+                getClass(faces.F[5]),
+                `<path d="M408.46,478.91Q404.23 465.91,397.4 465.91L376.89,465.91Q370.05 465.91,365.83 478.91L353.16,517.92Q348.93 530.92,364.22 530.92L410.07,530.92Q425.36 530.92,421.13 517.92Z" />`,
+            ],
+            [
+                getClass(faces.F[6]),
+                `<path d="M287.68,535.69Q274.01 535.69,271.9 542.19L265.56,561.69Q263.45 568.19,274.51 576.23L307.69,600.34Q318.75 608.37,323.47 593.84L337.64,550.22Q342.37 535.69,328.7 535.69Z" />`,
+            ],
+            [
+                getClass(faces.F[7]),
+                `<path d="M304.36,668.1Q300.13 681.1,305.66 685.12L322.25,697.17Q327.79 701.19,338.85 693.15L372.03,669.05Q383.09 661.01,370.72 652.03L333.62,625.07Q321.26 616.09,317.03 629.09Z" />`,
+            ],
+            [
+                getClass(faces.F[8]),
+                `<path d="M435.44,693.15Q446.5 701.19,452.03 697.17L468.63,685.12Q474.16 681.1,469.93 668.1L457.26,629.09Q453.03 616.09,440.67 625.07L403.57,652.03Q391.2 661.01,402.26 669.05Z" />`,
+            ],
+            [
+                getClass(faces.F[9]),
+                `<path d="M499.78,576.23Q510.84 568.19,508.73 561.69L502.39,542.19Q500.28 535.69,486.61 535.69L445.59,535.69Q431.92 535.69,436.64 550.22L450.81,593.84Q455.54 608.37,466.6 600.34Z" />`,
+            ],
+            [
+                getClass(faces.F[10]),
+                `<path d="M330.04,595.97Q325.31 610.51,337.68 619.49L374.78,646.44Q387.14 655.43,399.51 646.44L436.61,619.49Q448.98 610.51,444.25 595.97L430.08,552.36Q425.36 537.82,410.07 537.82L364.22,537.82Q348.93 537.82,344.21 552.36Z" />`,
+            ],
+            [
+                getClass(faces.L[0]),
+                `<path d="M280.61,470.3Q291.67 462.26,287.44 449.26L274.77,410.25Q270.55 397.25,259.48 405.29L226.3,429.39Q215.24 437.43,219.47 450.43L232.14,489.44Q236.37 502.44,247.43 494.41Z" />`,
+            ],
+            [
+                getClass(faces.L[1]),
+                `<path d="M239.99,303.2Q235.76 290.19,222.09 290.19L181.07,290.19Q167.4 290.19,171.63 303.2L184.3,342.21Q188.53 355.21,202.2 355.21L243.21,355.21Q256.89 355.21,252.66 342.21Z" />`,
+            ],
+            [
+                getClass(faces.L[2]),
+                `<path d="M68.51,290.19Q54.84 290.19,50.61 303.2L37.94,342.21Q33.71 355.21,47.39 355.21L88.4,355.21Q102.07 355.21,106.3 342.21L118.97,303.2Q123.2 290.19,109.52 290.19Z" />`,
+            ],
+            [
+                getClass(faces.L[3]),
+                `<path d="M3.15,449.26Q-1.07 462.26,9.99 470.3L43.17,494.41Q54.23 502.44,58.46 489.44L71.13,450.43Q75.36 437.43,64.3 429.39L31.11,405.29Q20.05 397.25,15.83 410.25Z" />`,
+            ],
+            [
+                getClass(faces.L[4]),
+                `<path d="M134.24,560.57Q145.3 568.61,156.36 560.57L189.54,536.46Q200.6 528.43,189.54 520.39L156.36,496.28Q145.3 488.25,134.24 496.28L101.06,520.39Q90 528.43,101.06 536.46Z" />`,
+            ],
+            [
+                getClass(faces.L[5]),
+                `<path d="M257.94,400.52Q269 392.48,266.88 385.98L260.55,366.48Q258.43 359.98,244.76 359.98L203.75,359.98Q190.08 359.98,194.8 374.51L208.97,418.13Q213.69 432.66,224.75 424.63Z" />`,
+            ],
+            [
+                getClass(faces.L[6]),
+                `<path d="M166.61,303.2Q162.39 290.19,155.55 290.19L135.05,290.19Q128.21 290.19,123.98 303.2L111.31,342.21Q107.09 355.21,122.37 355.21L168.23,355.21Q183.51 355.21,179.29 342.21Z" />`,
+            ],
+            [
+                getClass(faces.L[7]),
+                `<path d="M45.84,359.98Q32.16 359.98,30.05 366.48L23.71,385.98Q21.6 392.48,32.66 400.52L65.85,424.63Q76.91 432.66,81.63 418.13L95.8,374.51Q100.52 359.98,86.85 359.98Z" />`,
+            ],
+            [
+                getClass(faces.L[8]),
+                `<path d="M62.51,492.39Q58.29 505.39,63.82 509.41L80.41,521.46Q85.94 525.48,97 517.44L130.18,493.34Q141.24 485.3,128.88 476.32L91.78,449.36Q79.41 440.38,75.19 453.38Z" />`,
+            ],
+            [
+                getClass(faces.L[9]),
+                `<path d="M193.6,517.44Q204.66 525.48,210.19 521.46L226.78,509.41Q232.31 505.39,228.09 492.39L215.41,453.38Q211.19 440.38,198.82 449.36L161.72,476.32Q149.36 485.3,160.42 493.34Z" />`,
+            ],
+            [
+                getClass(faces.L[10]),
+                `<path d="M88.19,420.26Q83.47 434.79,95.83 443.78L132.93,470.73Q145.3 479.72,157.67 470.73L194.76,443.78Q207.13 434.79,202.41 420.26L188.24,376.65Q183.51 362.11,168.23 362.11L122.37,362.11Q107.09 362.11,102.36 376.65Z" />`,
+            ],
+            [
+                getClass(faces.BL[0]),
+                `<path d="M226.62,276.27Q237.68 284.3,248.74 276.27L281.92,252.16Q292.98 244.12,281.92 236.08L248.74,211.98Q237.68 203.94,226.62 211.98L193.43,236.08Q182.37 244.12,193.43 252.16Z" />`,
+            ],
+            [
+                getClass(faces.BL[1]),
+                `<path d="M372.99,185.99Q384.05 177.96,379.82 164.95L367.15,125.95Q362.92 112.94,351.86 120.98L318.68,145.09Q307.62 153.12,311.84 166.13L324.52,205.13Q328.74 218.14,339.8 210.1Z" />`,
+            ],
+            [
+                getClass(faces.BL[2]),
+                `<path d="M332.36,18.89Q328.14 5.89,314.47 5.89L273.45,5.89Q259.78 5.89,264 18.89L276.68,57.9Q280.9 70.9,294.57 70.9L335.59,70.9Q349.26 70.9,345.04 57.9Z" />`,
+            ],
+            [
+                getClass(faces.BL[3]),
+                `<path d="M160.89,5.89Q147.21 5.89,142.99 18.89L130.32,57.9Q126.09 70.9,139.76 70.9L180.78,70.9Q194.45 70.9,198.67 57.9L211.35,18.89Q215.57 5.89,201.9 5.89Z" />`,
+            ],
+            [
+                getClass(faces.BL[4]),
+                `<path d="M95.53,164.95Q91.31 177.96,102.37 185.99L135.55,210.1Q146.61 218.14,150.83 205.13L163.51,166.13Q167.73 153.12,156.67 145.09L123.49,120.98Q112.43 112.94,108.21 125.95Z" />`,
+            ],
+            [
+                getClass(faces.BL[5]),
+                `<path d="M285.97,233.14Q297.04 241.17,302.57 237.16L319.16,225.1Q324.69 221.08,320.46 208.08L307.79,169.07Q303.56 156.07,291.2 165.06L254.1,192.01Q241.73 200.99,252.79 209.03Z" />`,
+            ],
+            [
+                getClass(faces.BL[6]),
+                `<path d="M350.31,116.21Q361.37 108.18,359.26 101.67L352.92,82.17Q350.81 75.67,337.14 75.67L296.12,75.67Q282.45 75.67,287.18 90.21L301.35,133.82Q306.07 148.36,317.13 140.32Z" />`,
+            ],
+            [
+                getClass(faces.BL[7]),
+                `<path d="M258.99,18.89Q254.77 5.89,247.93 5.89L227.42,5.89Q220.59 5.89,216.36 18.89L203.69,57.9Q199.46 70.9,214.75 70.9L260.6,70.9Q275.89 70.9,271.66 57.9Z" />`,
+            ],
+            [
+                getClass(faces.BL[8]),
+                `<path d="M138.21,75.67Q124.54 75.67,122.43 82.17L116.09,101.67Q113.98 108.18,125.04 116.21L158.22,140.32Q169.28 148.36,174.01 133.82L188.18,90.21Q192.9 75.67,179.23 75.67Z" />`,
+            ],
+            [
+                getClass(faces.BL[9]),
+                `<path d="M154.89,208.08Q150.67 221.08,156.2 225.1L172.79,237.16Q178.32 241.17,189.38 233.14L222.56,209.03Q233.62 200.99,221.25 192.01L184.16,165.06Q171.79 156.07,167.56 169.07Z" />`,
+            ],
+            [
+                getClass(faces.BL[10]),
+                `<path d="M180.57,135.95Q175.85 150.49,188.21 159.47L225.31,186.43Q237.68 195.41,250.04 186.43L287.14,159.47Q299.51 150.49,294.78 135.95L280.61,92.34Q275.89 77.8,260.6 77.8L214.75,77.8Q199.46 77.8,194.74 92.34Z" />`,
+            ],
+            [
+                getClass(faces.BR[0]),
+                `<path d="M394.47,164.95Q390.24 177.96,401.3 185.99L434.49,210.1Q445.55 218.14,449.77 205.13L462.45,166.13Q466.67 153.12,455.61 145.09L422.43,120.98Q411.37 112.94,407.14 125.95Z" />`,
+            ],
+            [
+                getClass(faces.BR[1]),
+                `<path d="M525.55,276.27Q536.61 284.3,547.67 276.27L580.86,252.16Q591.92 244.12,580.86 236.08L547.67,211.98Q536.61 203.94,525.55 211.98L492.37,236.08Q481.31 244.12,492.37 252.16Z" />`,
+            ],
+            [
+                getClass(faces.BR[2]),
+                `<path d="M671.92,185.99Q682.98 177.96,678.76 164.95L666.08,125.95Q661.86 112.94,650.8 120.98L617.62,145.09Q606.56 153.12,610.78 166.13L623.45,205.13Q627.68 218.14,638.74 210.1Z" />`,
+            ],
+            [
+                getClass(faces.BR[3]),
+                `<path d="M631.3,18.89Q627.07 5.89,613.4 5.89L572.39,5.89Q558.72 5.89,562.94 18.89L575.62,57.9Q579.84 70.9,593.51 70.9L634.53,70.9Q648.2 70.9,643.97 57.9Z" />`,
+            ],
+            [
+                getClass(faces.BR[4]),
+                `<path d="M459.82,5.89Q446.15 5.89,441.93 18.89L429.25,57.9Q425.03 70.9,438.7 70.9L479.71,70.9Q493.39 70.9,497.61 57.9L510.29,18.89Q514.51 5.89,500.84 5.89Z" />`,
+            ],
+            [
+                getClass(faces.BR[5]),
+                `<path d="M453.83,208.08Q449.6 221.08,455.13 225.1L471.72,237.16Q477.25 241.17,488.31 233.14L521.5,209.03Q532.56 200.99,520.19 192.01L483.09,165.06Q470.73 156.07,466.5 169.07Z" />`,
+            ],
+            [
+                getClass(faces.BR[6]),
+                `<path d="M584.91,233.14Q595.97 241.17,601.5 237.16L618.09,225.1Q623.62 221.08,619.4 208.08L606.72,169.07Q602.5 156.07,590.13 165.06L553.04,192.01Q540.67 200.99,551.73 209.03Z" />`,
+            ],
+            [
+                getClass(faces.BR[7]),
+                `<path d="M649.25,116.21Q660.31 108.18,658.2 101.67L651.86,82.17Q649.75 75.67,636.08 75.67L595.06,75.67Q581.39 75.67,586.11 90.21L600.28,133.82Q605.01 148.36,616.07 140.32Z" />`,
+            ],
+            [
+                getClass(faces.BR[8]),
+                `<path d="M557.93,18.89Q553.7 5.89,546.87 5.89L526.36,5.89Q519.52 5.89,515.3 18.89L502.62,57.9Q498.4 70.9,513.68 70.9L559.54,70.9Q574.83 70.9,570.6 57.9Z" />`,
+            ],
+            [
+                getClass(faces.BR[9]),
+                `<path d="M437.15,75.67Q423.48 75.67,421.37 82.17L415.03,101.67Q412.92 108.18,423.98 116.21L457.16,140.32Q468.22 148.36,472.94 133.82L487.11,90.21Q491.84 75.67,478.17 75.67Z" />`,
+            ],
+            [
+                getClass(faces.BR[10]),
+                `<path d="M479.51,135.95Q474.78 150.49,487.15 159.47L524.25,186.43Q536.61 195.41,548.98 186.43L586.08,159.47Q598.44 150.49,593.72 135.95L579.55,92.34Q574.83 77.8,559.54 77.8L513.68,77.8Q498.4 77.8,493.68 92.34Z" />`,
+            ],
+            [
+                getClass(faces.D[0]),
+                `<path d="M1102.3,560.17Q1113.36 568.2,1124.42 560.17L1157.6,536.06Q1168.66 528.02,1157.6 519.99L1124.42,495.88Q1113.36 487.84,1102.3 495.88L1069.11,519.99Q1058.05 528.02,1069.11 536.06Z" />`,
+            ],
+            [
+                getClass(faces.D[1]),
+                `<path d="M1248.67,469.89Q1259.73 461.86,1255.5 448.86L1242.83,409.85Q1238.6 396.85,1227.54 404.88L1194.36,428.99Q1183.3 437.03,1187.52 450.03L1200.2,489.04Q1204.42 502.04,1215.48 494Z" />`,
+            ],
+            [
+                getClass(faces.D[2]),
+                `<path d="M1208.04,302.79Q1203.82 289.79,1190.15 289.79L1149.13,289.79Q1135.46 289.79,1139.68 302.79L1152.36,341.8Q1156.58 354.8,1170.25 354.8L1211.27,354.8Q1224.94 354.8,1220.72 341.8Z" />`,
+            ],
+            [
+                getClass(faces.D[3]),
+                `<path d="M1036.57,289.79Q1022.89 289.79,1018.67 302.79L1006,341.8Q1001.77 354.8,1015.44 354.8L1056.46,354.8Q1070.13 354.8,1074.35 341.8L1087.03,302.79Q1091.25 289.79,1077.58 289.79Z" />`,
+            ],
+            [
+                getClass(faces.D[4]),
+                `<path d="M971.21,448.86Q966.99 461.86,978.05 469.89L1011.23,494Q1022.29 502.04,1026.51 489.04L1039.19,450.03Q1043.41 437.03,1032.35 428.99L999.17,404.88Q988.11 396.85,983.89 409.85Z" />`,
+            ],
+            [
+                getClass(faces.D[5]),
+                `<path d="M1194.84,509Q1200.37 504.99,1196.14 491.98L1183.47,452.98Q1179.24 439.97,1166.88 448.96L1129.78,475.91Q1117.41 484.9,1128.47 492.93L1161.65,517.04Q1172.72 525.08,1178.25 521.06Z" />`,
+            ],
+            [
+                getClass(faces.D[6]),
+                `<path d="M1228.6,366.07Q1226.49 359.57,1212.82 359.57L1171.8,359.57Q1158.13 359.57,1162.86 374.11L1177.03,417.72Q1181.75 432.26,1192.81 424.22L1225.99,400.11Q1237.05 392.08,1234.94 385.58Z" />`,
+            ],
+            [
+                getClass(faces.D[7]),
+                `<path d="M1103.1,289.79Q1096.27 289.79,1092.04 302.79L1079.37,341.8Q1075.14 354.8,1090.43 354.8L1136.28,354.8Q1151.57 354.8,1147.35 341.8L1134.67,302.79Q1130.45 289.79,1123.61 289.79Z" />`,
+            ],
+            [
+                getClass(faces.D[8]),
+                `<path d="M991.77,385.58Q989.66 392.08,1000.72 400.11L1033.9,424.22Q1044.96 432.26,1049.69 417.72L1063.86,374.11Q1068.58 359.57,1054.91 359.57L1013.89,359.57Q1000.22 359.57,998.11 366.07Z" />`,
+            ],
+            [
+                getClass(faces.D[9]),
+                `<path d="M1048.47,521.06Q1054 525.08,1065.06 517.04L1098.24,492.93Q1109.3 484.9,1096.93 475.91L1059.84,448.96Q1047.47 439.97,1043.24 452.98L1030.57,491.98Q1026.35 504.99,1031.88 509Z" />`,
+            ],
+            [
+                getClass(faces.D[10]),
+                `<path d="M1156.29,376.24Q1151.57 361.7,1136.28 361.7L1090.43,361.7Q1075.14 361.7,1070.42 376.24L1056.25,419.85Q1051.53 434.39,1063.89 443.37L1100.99,470.33Q1113.36 479.31,1125.72 470.33L1162.82,443.37Q1175.19 434.39,1170.46 419.85Z" />`,
+            ],
+            [
+                getClass(faces.DL[0]),
+                `<path d="M1273.57,473.72Q1262.51 465.69,1251.45 473.72L1218.27,497.83Q1207.21 505.87,1218.27 513.91L1251.45,538.01Q1262.51 546.05,1273.57 538.01L1306.75,513.91Q1317.81 505.87,1306.75 497.83Z" />`,
+            ],
+            [
+                getClass(faces.DL[1]),
+                `<path d="M1127.2,564Q1116.14 572.03,1120.36 585.04L1133.04,624.04Q1137.26 637.05,1148.32 629.01L1181.51,604.9Q1192.57 596.87,1188.34 583.86L1175.67,544.86Q1171.44 531.85,1160.38 539.89Z" />`,
+            ],
+            [
+                getClass(faces.DL[2]),
+                `<path d="M1167.82,731.1Q1172.05 744.1,1185.72 744.1L1226.73,744.1Q1240.41 744.1,1236.18 731.1L1223.51,692.09Q1219.28 679.09,1205.61 679.09L1164.6,679.09Q1150.92 679.09,1155.15 692.09Z" />`,
+            ],
+            [
+                getClass(faces.DL[3]),
+                `<path d="M1339.3,744.1Q1352.97 744.1,1357.2 731.1L1369.87,692.09Q1374.09 679.09,1360.42 679.09L1319.41,679.09Q1305.74 679.09,1301.51 692.09L1288.84,731.1Q1284.61 744.1,1298.28 744.1Z" />`,
+            ],
+            [
+                getClass(faces.DL[4]),
+                `<path d="M1404.65,585.04Q1408.88 572.03,1397.82 564L1364.64,539.89Q1353.58 531.85,1349.35 544.86L1336.68,583.86Q1332.45 596.87,1343.51 604.9L1376.69,629.01Q1387.76 637.05,1391.98 624.04Z" />`,
+            ],
+            [
+                getClass(faces.DL[5]),
+                `<path d="M1181.03,524.89Q1175.5 528.91,1179.72 541.91L1192.4,580.92Q1196.62 593.92,1208.99 584.93L1246.09,557.98Q1258.45 549,1247.39 540.96L1214.21,516.85Q1203.15 508.82,1197.62 512.83Z" />`,
+            ],
+            [
+                getClass(faces.DL[6]),
+                `<path d="M1147.26,667.82Q1149.37 674.32,1163.05 674.32L1204.06,674.32Q1217.73 674.32,1213.01 659.78L1198.84,616.17Q1194.12 601.63,1183.05 609.67L1149.87,633.78Q1138.81 641.81,1140.92 648.32Z" />`,
+            ],
+            [
+                getClass(faces.DL[7]),
+                `<path d="M1272.76,744.1Q1279.6 744.1,1283.82 731.1L1296.5,692.09Q1300.72 679.09,1285.44 679.09L1239.58,679.09Q1224.3 679.09,1228.52 692.09L1241.19,731.1Q1245.42 744.1,1252.26 744.1Z" />`,
+            ],
+            [
+                getClass(faces.DL[8]),
+                `<path d="M1384.09,648.32Q1386.21 641.81,1375.15 633.78L1341.96,609.67Q1330.9 601.63,1326.18 616.17L1312.01,659.78Q1307.29 674.32,1320.96 674.32L1361.97,674.32Q1375.64 674.32,1377.76 667.82Z" />`,
+            ],
+            [
+                getClass(faces.DL[9]),
+                `<path d="M1327.4,512.83Q1321.87 508.82,1310.81 516.85L1277.63,540.96Q1266.56 549,1278.93 557.98L1316.03,584.93Q1328.4 593.92,1332.62 580.92L1345.3,541.91Q1349.52 528.91,1343.99 524.89Z" />`,
+            ],
+            [
+                getClass(faces.DL[10]),
+                `<path d="M1285.44,672.19Q1300.72 672.19,1305.45 657.65L1319.62,614.04Q1324.34 599.5,1311.97 590.52L1274.88,563.56Q1262.51 554.58,1250.14 563.56L1213.04,590.52Q1200.68 599.5,1205.4 614.04L1219.57,657.65Q1224.3 672.19,1239.58 672.19Z" />`,
+            ],
+            [
+                getClass(faces.DR[0]),
+                `<path d="M1106.35,585.04Q1110.57 572.03,1099.51 564L1066.33,539.89Q1055.27 531.85,1051.05 544.86L1038.37,583.86Q1034.15 596.87,1045.21 604.9L1078.39,629.01Q1089.45 637.05,1093.67 624.04Z" />`,
+            ],
+            [
+                getClass(faces.DR[1]),
+                `<path d="M975.26,473.72Q964.2 465.69,953.14 473.72L919.96,497.83Q908.9 505.87,919.96 513.91L953.14,538.01Q964.2 546.05,975.26 538.01L1008.45,513.91Q1019.51 505.87,1008.45 497.83Z" />`,
+            ],
+            [
+                getClass(faces.DR[2]),
+                `<path d="M828.89,564Q817.83 572.03,822.06 585.04L834.73,624.04Q838.96 637.05,850.02 629.01L883.2,604.9Q894.26 596.87,890.04 583.86L877.36,544.86Q873.14 531.85,862.08 539.89Z" />`,
+            ],
+            [
+                getClass(faces.DR[3]),
+                `<path d="M869.52,731.1Q873.74 744.1,887.41 744.1L928.43,744.1Q942.1 744.1,937.88 731.1L925.2,692.09Q920.98 679.09,907.3 679.09L866.29,679.09Q852.62 679.09,856.84 692.09Z" />`,
+            ],
+            [
+                getClass(faces.DR[4]),
+                `<path d="M1040.99,744.1Q1054.66 744.1,1058.89 731.1L1071.56,692.09Q1075.79 679.09,1062.12 679.09L1021.1,679.09Q1007.43 679.09,1003.21 692.09L990.53,731.1Q986.31 744.1,999.98 744.1Z" />`,
+            ],
+            [
+                getClass(faces.DR[5]),
+                `<path d="M1029.09,512.83Q1023.56 508.82,1012.5 516.85L979.32,540.96Q968.26 549,980.63 557.98L1017.72,584.93Q1030.09 593.92,1034.31 580.92L1046.99,541.91Q1051.21 528.91,1045.68 524.89Z" />`,
+            ],
+            [
+                getClass(faces.DR[6]),
+                `<path d="M882.72,524.89Q877.19 528.91,881.42 541.91L894.09,580.92Q898.32 593.92,910.68 584.93L947.78,557.98Q960.15 549,949.09 540.96L915.9,516.85Q904.84 508.82,899.31 512.83Z" />`,
+            ],
+            [
+                getClass(faces.DR[7]),
+                `<path d="M848.96,667.82Q851.07 674.32,864.74 674.32L905.76,674.32Q919.43 674.32,914.7 659.78L900.53,616.17Q895.81 601.63,884.75 609.67L851.57,633.78Q840.51 641.81,842.62 648.32Z" />`,
+            ],
+            [
+                getClass(faces.DR[8]),
+                `<path d="M974.46,744.1Q981.29 744.1,985.52 731.1L998.19,692.09Q1002.42 679.09,987.13 679.09L941.28,679.09Q925.99 679.09,930.21 692.09L942.89,731.1Q947.11 744.1,953.95 744.1Z" />`,
+            ],
+            [
+                getClass(faces.DR[9]),
+                `<path d="M1085.79,648.32Q1087.9 641.81,1076.84 633.78L1043.66,609.67Q1032.6 601.63,1027.87 616.17L1013.7,659.78Q1008.98 674.32,1022.65 674.32L1063.67,674.32Q1077.34 674.32,1079.45 667.82Z" />`,
+            ],
+            [
+                getClass(faces.DR[10]),
+                `<path d="M987.13,672.19Q1002.42 672.19,1007.14 657.65L1021.31,614.04Q1026.03 599.5,1013.67 590.52L976.57,563.56Q964.2 554.58,951.84 563.56L914.74,590.52Q902.37 599.5,907.1 614.04L921.27,657.65Q925.99 672.19,941.28 672.19Z" />`,
+            ],
+            [
+                getClass(faces.DBR[0]),
+                `<path d="M948.81,460.4Q962.48 460.4,966.71 447.39L979.38,408.39Q983.61 395.38,969.94 395.38L928.92,395.38Q915.25 395.38,911.02 408.39L898.35,447.39Q894.12 460.4,907.8 460.4Z" />`,
+            ],
+            [
+                getClass(faces.DBR[1]),
+                `<path d="M1014.17,301.33Q1018.39 288.33,1007.33 280.29L974.15,256.18Q963.09 248.15,958.86 261.15L946.19,300.16Q941.96 313.16,953.03 321.2L986.21,345.3Q997.27 353.34,1001.49 340.34Z" />`,
+            ],
+            [
+                getClass(faces.DBR[2]),
+                `<path d="M883.08,190.02Q872.02 181.98,860.96 190.02L827.78,214.13Q816.72 222.16,827.78 230.2L860.96,254.31Q872.02 262.34,883.08 254.31L916.26,230.2Q927.33 222.16,916.26 214.13Z" />`,
+            ],
+            [
+                getClass(faces.DBR[3]),
+                `<path d="M736.71,280.29Q725.65 288.33,729.88 301.33L742.55,340.34Q746.78 353.34,757.84 345.3L791.02,321.2Q802.08 313.16,797.85 300.16L785.18,261.15Q780.96 248.15,769.89 256.18Z" />`,
+            ],
+            [
+                getClass(faces.DBR[4]),
+                `<path d="M777.34,447.39Q781.56 460.4,795.23 460.4L836.25,460.4Q849.92 460.4,845.69 447.39L833.02,408.39Q828.79 395.38,815.12 395.38L774.11,395.38Q760.44 395.38,764.66 408.39Z" />`,
+            ],
+            [
+                getClass(faces.DBR[5]),
+                `<path d="M993.61,364.61Q995.72 358.11,984.66 350.07L951.48,325.96Q940.42 317.93,935.69 332.47L921.52,376.08Q916.8 390.61,930.47 390.61L971.48,390.61Q985.16 390.61,987.27 384.11Z" />`,
+            ],
+            [
+                getClass(faces.DBR[6]),
+                `<path d="M936.91,229.13Q931.38 225.11,920.32 233.15L887.14,257.25Q876.08 265.29,888.44 274.27L925.54,301.23Q937.91 310.21,942.13 297.21L954.81,258.2Q959.03 245.2,953.5 241.18Z" />`,
+            ],
+            [
+                getClass(faces.DBR[7]),
+                `<path d="M790.54,241.18Q785.01 245.2,789.24 258.2L801.91,297.21Q806.13 310.21,818.5 301.23L855.6,274.27Q867.97 265.29,856.91 257.25L823.72,233.15Q812.66 225.11,807.13 229.13Z" />`,
+            ],
+            [
+                getClass(faces.DBR[8]),
+                `<path d="M756.77,384.11Q758.89 390.61,772.56 390.61L813.57,390.61Q827.25 390.61,822.52 376.08L808.35,332.47Q803.63 317.93,792.57 325.96L759.39,350.07Q748.32 358.11,750.44 364.61Z" />`,
+            ],
+            [
+                getClass(faces.DBR[9]),
+                `<path d="M882.28,460.4Q889.11 460.4,893.34 447.39L906.01,408.39Q910.24 395.38,894.95 395.38L849.09,395.38Q833.81 395.38,838.03 408.39L850.71,447.39Q854.93 460.4,861.77 460.4Z" />`,
+            ],
+            [
+                getClass(faces.DBR[10]),
+                `<path d="M894.95,388.48Q910.24 388.48,914.96 373.95L929.13,330.33Q933.85 315.8,921.49 306.81L884.39,279.86Q872.02 270.87,859.66 279.86L822.56,306.81Q810.19 315.8,814.91 330.33L829.08,373.95Q833.81 388.48,849.09 388.48Z" />`,
+            ],
+            [
+                getClass(faces.B[0]),
+                `<path d="M1018.67,272.05Q1022.89 285.06,1036.57 285.06L1077.58,285.06Q1091.25 285.06,1087.03 272.05L1074.35,233.05Q1070.13 220.04,1056.46 220.04L1015.44,220.04Q1001.77 220.04,1006 233.05Z" />`,
+            ],
+            [
+                getClass(faces.B[1]),
+                `<path d="M1190.15,285.06Q1203.82 285.06,1208.04 272.05L1220.72,233.05Q1224.94 220.04,1211.27 220.04L1170.25,220.04Q1156.58 220.04,1152.36 233.05L1139.68,272.05Q1135.46 285.06,1149.13 285.06Z" />`,
+            ],
+            [
+                getClass(faces.B[2]),
+                `<path d="M1255.5,125.99Q1259.73 112.99,1248.67 104.95L1215.48,80.84Q1204.42 72.81,1200.2 85.81L1187.52,124.82Q1183.3 137.82,1194.36 145.86L1227.54,169.96Q1238.6 178,1242.83 165Z" />`,
+            ],
+            [
+                getClass(faces.B[3]),
+                `<path d="M1124.42,14.68Q1113.36 6.64,1102.3 14.68L1069.11,38.79Q1058.05 46.82,1069.11 54.86L1102.3,78.97Q1113.36 87,1124.42 78.97L1157.6,54.86Q1168.66 46.82,1157.6 38.79Z" />`,
+            ],
+            [
+                getClass(faces.B[4]),
+                `<path d="M978.05,104.95Q966.99 112.99,971.21 125.99L983.89,165Q988.11 178,999.17 169.96L1032.35,145.86Q1043.41 137.82,1039.19 124.82L1026.51,85.81Q1022.29 72.81,1011.23 80.84Z" />`,
+            ],
+            [
+                getClass(faces.B[5]),
+                `<path d="M1123.61,285.06Q1130.45 285.06,1134.67 272.05L1147.35,233.05Q1151.57 220.04,1136.28 220.04L1090.43,220.04Q1075.14 220.04,1079.37 233.05L1092.04,272.05Q1096.27 285.06,1103.1 285.06Z" />`,
+            ],
+            [
+                getClass(faces.B[6]),
+                `<path d="M1234.94,189.27Q1237.05 182.77,1225.99 174.73L1192.81,150.62Q1181.75 142.59,1177.03 157.13L1162.86,200.74Q1158.13 215.27,1171.8 215.27L1212.82,215.27Q1226.49 215.27,1228.6 208.77Z" />`,
+            ],
+            [
+                getClass(faces.B[7]),
+                `<path d="M1178.25,53.79Q1172.72 49.77,1161.65 57.81L1128.47,81.91Q1117.41 89.95,1129.78 98.94L1166.88,125.89Q1179.24 134.87,1183.47 121.87L1196.14,82.86Q1200.37 69.86,1194.84 65.84Z" />`,
+            ],
+            [
+                getClass(faces.B[8]),
+                `<path d="M1031.88,65.84Q1026.35 69.86,1030.57 82.86L1043.24,121.87Q1047.47 134.87,1059.84 125.89L1096.93,98.94Q1109.3 89.95,1098.24 81.91L1065.06,57.81Q1054 49.77,1048.47 53.79Z" />`,
+            ],
+            [
+                getClass(faces.B[9]),
+                `<path d="M998.11,208.77Q1000.22 215.27,1013.89 215.27L1054.91,215.27Q1068.58 215.27,1063.86 200.74L1049.69,157.13Q1044.96 142.59,1033.9 150.62L1000.72,174.73Q989.66 182.77,991.77 189.27Z" />`,
+            ],
+            [
+                getClass(faces.B[10]),
+                `<path d="M1136.28,213.14Q1151.57 213.14,1156.29 198.61L1170.46,154.99Q1175.19 140.46,1162.82 131.47L1125.72,104.52Q1113.36 95.53,1100.99 104.52L1063.89,131.47Q1051.53 140.46,1056.25 154.99L1070.42,198.61Q1075.14 213.14,1090.43 213.14Z" />`,
+            ],
+            [
+                getClass(faces.DBL[0]),
+                `<path d="M1219.38,280.29Q1208.32 288.33,1212.55 301.33L1225.22,340.34Q1229.44 353.34,1240.51 345.3L1273.69,321.2Q1284.75 313.16,1280.52 300.16L1267.85,261.15Q1263.62 248.15,1252.56 256.18Z" />`,
+            ],
+            [
+                getClass(faces.DBL[1]),
+                `<path d="M1260,447.39Q1264.23 460.4,1277.9 460.4L1318.92,460.4Q1332.59 460.4,1328.36 447.39L1315.69,408.39Q1311.46 395.38,1297.79 395.38L1256.78,395.38Q1243.1 395.38,1247.33 408.39Z" />`,
+            ],
+            [
+                getClass(faces.DBL[2]),
+                `<path d="M1431.48,460.4Q1445.15 460.4,1449.38 447.39L1462.05,408.39Q1466.28 395.38,1452.6 395.38L1411.59,395.38Q1397.92 395.38,1393.69 408.39L1381.02,447.39Q1376.79 460.4,1390.47 460.4Z" />`,
+            ],
+            [
+                getClass(faces.DBL[3]),
+                `<path d="M1496.84,301.33Q1501.06 288.33,1490 280.29L1456.82,256.18Q1445.76 248.15,1441.53 261.15L1428.86,300.16Q1424.63 313.16,1435.69 321.2L1468.88,345.3Q1479.94 353.34,1484.16 340.34Z" />`,
+            ],
+            [
+                getClass(faces.DBL[4]),
+                `<path d="M1365.75,190.02Q1354.69 181.98,1343.63 190.02L1310.45,214.13Q1299.39 222.16,1310.45 230.2L1343.63,254.31Q1354.69 262.34,1365.75 254.31L1398.93,230.2Q1409.99 222.16,1398.93 214.13Z" />`,
+            ],
+            [
+                getClass(faces.DBL[5]),
+                `<path d="M1239.44,384.11Q1241.56 390.61,1255.23 390.61L1296.24,390.61Q1309.91 390.61,1305.19 376.08L1291.02,332.47Q1286.3 317.93,1275.24 325.96L1242.05,350.07Q1230.99 358.11,1233.11 364.61Z" />`,
+            ],
+            [
+                getClass(faces.DBL[6]),
+                `<path d="M1364.94,460.4Q1371.78 460.4,1376.01 447.39L1388.68,408.39Q1392.9 395.38,1377.62 395.38L1331.76,395.38Q1316.48 395.38,1320.7 408.39L1333.38,447.39Q1337.6 460.4,1344.44 460.4Z" />`,
+            ],
+            [
+                getClass(faces.DBL[7]),
+                `<path d="M1476.28,364.61Q1478.39 358.11,1467.33 350.07L1434.14,325.96Q1423.08 317.93,1418.36 332.47L1404.19,376.08Q1399.47 390.61,1413.14 390.61L1454.15,390.61Q1467.83 390.61,1469.94 384.11Z" />`,
+            ],
+            [
+                getClass(faces.DBL[8]),
+                `<path d="M1419.58,229.13Q1414.05 225.11,1402.99 233.15L1369.81,257.25Q1358.75 265.29,1371.11 274.27L1408.21,301.23Q1420.58 310.21,1424.8 297.21L1437.48,258.2Q1441.7 245.2,1436.17 241.18Z" />`,
+            ],
+            [
+                getClass(faces.DBL[9]),
+                `<path d="M1273.21,241.18Q1267.68 245.2,1271.9 258.2L1284.58,297.21Q1288.8 310.21,1301.17 301.23L1338.27,274.27Q1350.63 265.29,1339.57 257.25L1306.39,233.15Q1295.33 225.11,1289.8 229.13Z" />`,
+            ],
+            [
+                getClass(faces.DBL[10]),
+                `<path d = "M1377.62,388.48Q1392.9 388.48,1397.63 373.95L1411.8,330.33Q1416.52 315.8,1404.16 306.81L1367.06,279.86Q1354.69 270.87,1342.32 279.86L1305.23,306.81Q1292.86 315.8,1297.58 330.33L1311.75,373.95Q1316.48 388.48,1331.76 388.48Z" />`,
+            ],
+        ];
+        paths.forEach((path) => {
+            const val = path[1].replace(/(\d+(\.\d+)?)/g, (match) => {
+                const num = parseFloat(match) / 10;
+                return num.toFixed(2);
+            });
+            if (classMap.has(path[0])) {
+                classMap.get(path[0]).push(val);
+            }
+            else {
+                classMap.set(path[0], [val]);
+            }
+        });
+        return [
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 150 75"><style>path{stroke:black;stroke-width:0.2;stroke-linecap:square;}.c0{fill:#e6e6e6;}.c1{fill:#dc422f;}.c2{fill:#009d54;}.c3{fill:#8a1bff;}.c4{fill:#ffeb3b;}.c5{fill:#3d81f6;}.c6{fill:#707070;}.c7{fill:#53b1f3;}.c8{fill:#dcd3a5;}.c9{fill:#ed96a1;}.c10{fill:#4ad931;}.c11{fill:#e87000;}.c12,.c13{ alignment-baseline:middle;fill:#191919;text-anchor:middle;}</style>`,
+            ...Array.from(classMap.entries()).map(([cls, path]) => {
+                return `<g class="${cls}">${path.join("")}</g>`;
+            }),
+            `<text x="38.7" y="34.27" font-size="7.5" class="c12">U</text><text x="38.7" y="60" font-size="7.5" class="c13">F</text> </svg>`,
+        ].join("");
     };
     return mega;
+}
+
+function types(arr) {
+    const res = [];
+    for (let i = 0, maxi = arr.length; i < maxi; i += 1) {
+        if (Array.isArray(arr[i])) {
+            res.push("a");
+        }
+        else
+            switch (typeof arr[i]) {
+                case "number":
+                case "string":
+                case "object":
+                case "undefined":
+                case "function": {
+                    res.push((typeof arr[i])[0]);
+                    break;
+                }
+                default: {
+                    res.push("?");
+                    break;
+                }
+            }
+    }
+    return res.join("");
+}
+function adjust(val, a, b) {
+    let ini = a || 0;
+    let fin = b || 255;
+    if (ini > fin) {
+        ini += fin;
+        fin = ini - fin;
+        ini = ini - fin;
+    }
+    return Math.min(Math.max(ini, val), fin);
+}
+class Color {
+    constructor(a, b, c, d, e) {
+        const tp = types([a, b, c, d, e]);
+        this.color = [0, 1, 2].map(() => Math.round(Math.random() * 255));
+        this.color[0] = adjust(this.color[0]);
+        this.color[1] = adjust(this.color[1]);
+        this.color[2] = adjust(this.color[2]);
+        this.color[3] = 1;
+        switch (tp) {
+            case "nnnns": {
+                /*if (e.match(/cmyk/i)) {
+                  this.fromCMYK(a, b, c, d);
+                } else*/
+                if (e.match(/rgba/i)) {
+                    this.fromRGBA(a, b, c, d);
+                }
+                else {
+                    throw new TypeError(`Unknown format color ${e}`);
+                }
+                break;
+            }
+            case "nnnnu": {
+                this.fromRGBA(a, b, c, d);
+                break;
+            }
+            case "nnnsu": {
+                // if (d.match(/cmy/i)) {
+                //   this.fromCMY(a, b, c);
+                // } else if (d.match(/ryb/i)) {
+                //   this.fromRYB(a, b, c);
+                // } else if (d.match(/hsv/i)) {
+                //   this.fromHSV(a, b, c);
+                // } else {
+                throw new TypeError(`Unknown format color ${e}`);
+            }
+            case "nnnuu": {
+                this.fromRGB(a, b, c);
+                break;
+            }
+            case "suuuu": {
+                this.fromString(a);
+                break;
+            }
+        }
+    }
+    set(k, v) {
+        this.color[k] = v;
+    }
+    // fromCMY(C: number, M: number, Y: number) {
+    //   throw new ReferenceError("CMY not supported yet");
+    // }
+    // fromCMYK(C: number, M: number, Y: number, K: number) {
+    //   throw new ReferenceError("CMYK not supported yet");
+    // }
+    // fromRYB(R: number, Y: number, B: number) {
+    //   throw new ReferenceError("RYB not supported yet");
+    // }
+    // fromHSV(HL: number, S: number, V: number) {
+    //   throw new ReferenceError("HSV not supported yet");
+    // }
+    fromRGB(r, g, b) {
+        this.color[0] = adjust(r);
+        this.color[1] = adjust(g);
+        this.color[2] = adjust(b);
+    }
+    fromRGBA(r, g, b, a) {
+        this.fromRGB(r, g, b);
+        this.color[3] = adjust(a, 0, 1);
+    }
+    fromString(s) {
+        const rgbaReg = /$rgba\(([0-9]*),([0-9]*),([0-9]*),([0-9]*)\)$/;
+        const rgbReg = /^rgb\(([0-9]*),([0-9]*),([0-9]*)\)$/;
+        const hexReg = /^#(\w{2})(\w{2})(\w{2})$/;
+        const hex1Reg = /^#(\w{1})(\w{1})(\w{1})$/;
+        const hexaReg = /^#(\w{2})(\w{2})(\w{2})(\w{2})$/;
+        const hexa1Reg = /^#(\w{1})(\w{1})(\w{1})(\w{1})$/;
+        const str = s.replace(/\s/g, "");
+        if (rgbaReg.test(str)) {
+            const [r, g, b, a] = str
+                .replace(rgbaReg, "$1 $2 $3 $4")
+                .split(" ")
+                .map(Number);
+            this.fromRGBA(r, g, b, a);
+        }
+        else if (rgbReg.test(str)) {
+            const [r, g, b] = str.replace(rgbReg, "$1 $2 $3").split(" ").map(Number);
+            this.fromRGB(r, g, b);
+        }
+        else if (hexaReg.test(str)) {
+            const [r, g, b, a] = str
+                .replace(hexaReg, "$1 $2 $3 $4")
+                .split(" ")
+                .map((e) => parseInt(e, 16));
+            this.fromRGBA(r, g, b, a);
+        }
+        else if (hexReg.test(str)) {
+            const [r, g, b] = str
+                .replace(hexReg, "$1 $2 $3")
+                .split(" ")
+                .map((e) => parseInt(e, 16));
+            this.fromRGB(r, g, b);
+        }
+        else if (hexa1Reg.test(str)) {
+            const [r, g, b, a] = str
+                .replace(hexa1Reg, "$1$1 $2$2 $3$3 $4$4")
+                .split(" ")
+                .map((e) => parseInt(e, 16));
+            this.fromRGBA(r, g, b, a);
+        }
+        else if (hex1Reg.test(str)) {
+            const [r, g, b] = str
+                .replace(hex1Reg, "$1$1 $2$2 $3$3")
+                .split(" ")
+                .map((e) => parseInt(e, 16));
+            this.fromRGB(r, g, b);
+        }
+        else {
+            throw new TypeError("String format other than rgb() or rgba() not supported yet");
+        }
+    }
+    interpolate(col, a) {
+        const c = new Color();
+        c.color = this.color.map((e, p) => e * (1 - a) + col.color[p] * a);
+        return c;
+    }
+    clone() {
+        const res = new Color(0, 0, 0);
+        res.color = this.color.map((e) => e);
+        return res;
+    }
+    toHex(alpha = true) {
+        const t = this.color.map((e) => e);
+        t[3] = ~~adjust(t[3] * 255);
+        if (!alpha)
+            t.pop();
+        return "#" + t.map((e) => ("00" + e.toString(16)).substr(-2, 2)).join("");
+    }
+    toNumber() {
+        let res = 0;
+        for (let i = 0; i < 3; i += 1) {
+            res *= 256;
+            res += this.color[i];
+        }
+        return res;
+    }
+    toRGBStr() {
+        return `rgb(${this.color[0]}, ${this.color[1]}, ${this.color[2]})`;
+    }
+    toRGBAStr() {
+        return `rgba(${this.color[0]}, ${this.color[1]}, ${this.color[2]}, ${~~(this.color[3] * 255)})`;
+    }
+    rgbToHSL() {
+        this.color[0] /= 255;
+        this.color[1] /= 255;
+        this.color[2] /= 255;
+        const r = this.color[0];
+        const g = this.color[1];
+        const b = this.color[2];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0, s;
+        const l = (max + min) / 2;
+        if (max === min) {
+            h = s = 0; // Color neutro
+        }
+        else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r:
+                    h = (g - b) / d + (g < b ? 6 : 0);
+                    break;
+                case g:
+                    h = (b - r) / d + 2;
+                    break;
+                case b:
+                    h = (r - g) / d + 4;
+                    break;
+            }
+            h *= 60;
+        }
+        return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+    }
+    toArray() {
+        return this.color.map((e) => e);
+    }
 }
 
 function RUBIK(n) {
@@ -12391,12 +13307,12 @@ function RUBIK(n) {
         move: () => false,
     };
     const FACE_COLOR = {
-        U: "white",
-        R: "red",
-        F: "green",
-        D: "yellow",
-        L: "orange",
-        B: "blue",
+        0: "white",
+        1: "red",
+        2: "green",
+        3: "yellow",
+        4: "orange",
+        5: "blue",
     };
     const faces = {
         U: [],
@@ -12406,11 +13322,12 @@ function RUBIK(n) {
         L: [],
         B: [],
     };
-    Object.entries(faces).forEach(([e]) => {
+    Object.entries(faces).forEach(([e], p) => {
         const fn = e;
-        faces[e] = Array.from({ length: n })
+        const fnn = p;
+        faces[fn] = Array.from({ length: n })
             .fill("")
-            .map(() => Array.from({ length: n }).fill(fn));
+            .map(() => Array.from({ length: n }).fill(fnn));
     });
     const cycles = {
         U: [
@@ -12549,7 +13466,7 @@ function RUBIK(n) {
     function rotateFace(face, count) {
         const n = face.length;
         const times = ((count % 4) + 4) % 4;
-        const result = Array.from({ length: n }, () => Array(n).fill(""));
+        const result = Array.from({ length: n }, () => Array(n).fill(0));
         const mapIndex = [
             (i, j) => [i, j],
             (i, j) => [j, n - 1 - i],
@@ -12600,24 +13517,38 @@ function RUBIK(n) {
         const OFFSET = (CW * (1 - PIECE_FACTOR)) / 2;
         const BOX_OFFSET = (BOX * (1 - BOX_FACTOR)) / 2;
         const RX = 3 / n + 0.4;
+        const height = svgnum(CW * PIECE_FACTOR * BOX_FACTOR);
+        const width = svgnum(CW * PIECE_FACTOR * BOX_FACTOR);
+        const rdx = svgnum(RX);
         const getRect = (x, y, bx, by, fc) => {
-            return `<rect x="${svgnum(bx * BOX + BOX_OFFSET + x * CW * BOX_FACTOR + OFFSET)}" y="${svgnum(by * BOX + BOX_OFFSET + y * CW * BOX_FACTOR + OFFSET)}" width="${svgnum(CW * PIECE_FACTOR * BOX_FACTOR)}" height="${svgnum(CW * PIECE_FACTOR * BOX_FACTOR)}" fill="${STANDARD_PALETTE[FACE_COLOR[fc]]}" rx="${svgnum(RX)}" />`;
+            const rx = svgnum(bx * BOX + BOX_OFFSET + x * CW * BOX_FACTOR + OFFSET);
+            const ry = svgnum(by * BOX + BOX_OFFSET + y * CW * BOX_FACTOR + OFFSET);
+            return `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" />`;
         };
-        const allPieces = [
+        const classMap = new Map();
+        [
             ["U", 1, 0],
             ["L", 0, 1],
             ["F", 1, 1],
             ["R", 2, 1],
             ["B", 3, 1],
             ["D", 1, 2],
-        ]
-            .map((e) => faces[e[0]]
-            .map((v, y) => v
-            .map((fc, x) => getRect(x, y, e[1], e[2], fc))
-            .join(""))
-            .join(""))
-            .join("");
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${allPieces}</svg>`;
+        ].map((e) => faces[e[0]].map((v, y) => v.forEach((fc, x) => {
+            let cl = fc;
+            let rect = getRect(x, y, e[1], e[2]);
+            if (classMap.has(cl)) {
+                classMap.get(cl).push(rect);
+            }
+            else {
+                classMap.set(cl, [rect]);
+            }
+        })));
+        return [
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
+            `<style>rect{rx:${rdx};}</style>`,
+            ...Array.from(classMap.entries()).map((v) => `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[v[0]]]).toHex(false)}">${v[1].join("")}</g>`),
+            `</svg>`,
+        ].join("");
     };
     return rubik;
 }
@@ -12753,7 +13684,174 @@ function PYRAMINX() {
         return "c" + lookup[fc];
     }
     pyra.getImage = () => {
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 1000 879.9999999999999" class="NzJiZmJlZDYtZjgx"><style>.NzJiZmJlZDYtZjgx .c0{fill:#009d54ff;stroke:black;stroke-width:5;stroke-linecap:square;}.NzJiZmJlZDYtZjgx .c1{fill:#ffeb3bff;stroke:black;stroke-width:5;stroke-linecap:square;}.NzJiZmJlZDYtZjgx .c2{fill:#dc422fff;stroke:black;stroke-width:5;stroke-linecap:square;}.NzJiZmJlZDYtZjgx .c3{fill:#3d81f6ff;stroke:black;stroke-width:5;stroke-linecap:square;}</style><path class="${getClass(faces.F[0])}" d="M508.32,37.49Q500 23.11,491.67 37.49L432.67,139.47Q424.35 153.85,440.99 153.85L559,153.85Q575.64 153.85,567.32 139.47Z" /><path class="${getClass(faces.F[1])}" d="M344.76,320.17Q336.44 305.79,328.12 320.17L269.12,422.15Q260.8 436.53,277.44 436.53L395.44,436.53Q412.09 436.53,403.77 422.15Z" /><path class="${getClass(faces.F[2])}" d="M671.87,320.17Q663.55 305.79,655.23 320.17L596.22,422.15Q587.9 436.53,604.55 436.53L722.55,436.53Q739.19 436.53,730.87 422.15Z" /><path class="${getClass(faces.F[3])}" d="M426.54,178.83Q418.22 164.45,409.9 178.83L350.9,280.81Q342.58 295.19,359.22 295.19L477.22,295.19Q493.86 295.19,485.54 280.81Z" /><path class="${getClass(faces.F[4])}" d="M508.32,320.17Q500 305.79,491.67 320.17L432.67,422.15Q424.35 436.53,440.99 436.53L559,436.53Q575.64 436.53,567.32 422.15Z" /><path class="${getClass(faces.F[5])}" d="M590.09,178.83Q581.77 164.45,573.45 178.83L514.45,280.81Q506.13 295.19,522.77 295.19L640.77,295.19Q657.41 295.19,649.09 280.81Z" /><path class="${getClass(faces.F[6])}" d="M440.99,160.92Q424.35 160.92,432.67 175.3L491.67,277.27Q500 291.66,508.32 277.27L567.32,175.3Q575.64 160.92,559 160.92Z" /><path class="${getClass(faces.F[7])}" d="M359.22,302.26Q342.58 302.26,350.9 316.64L409.9,418.61Q418.22 433,426.54 418.61L485.54,316.64Q493.86 302.26,477.22 302.26Z" /><path class="${getClass(faces.F[8])}" d="M522.77,302.26Q506.13 302.26,514.45 316.64L573.45,418.61Q581.77 433,590.09 418.61L649.09,316.64Q657.41 302.26,640.77 302.26Z" /><path class="${getClass(faces.D[0])}" d="M655.23,584.53Q663.55 598.94,671.87 584.53L730.87,482.34Q739.19 467.92,722.55 467.92L604.55,467.92Q587.9 467.92,596.22 482.34Z" /><path class="${getClass(faces.D[1])}" d="M328.12,584.53Q336.44 598.94,344.76 584.53L403.77,482.34Q412.09 467.92,395.44 467.92L277.44,467.92Q260.8 467.92,269.12 482.34Z" /><path class="${getClass(faces.D[2])}" d="M491.67,867.81Q500 882.22,508.32 867.81L567.32,765.61Q575.64 751.2,559 751.2L440.99,751.2Q424.35 751.2,432.67 765.61Z" /><path class="${getClass(faces.D[3])}" d="M491.67,584.53Q500 598.94,508.32 584.53L567.32,482.34Q575.64 467.92,559 467.92L440.99,467.92Q424.35 467.92,432.67 482.34Z" /><path class="${getClass(faces.D[4])}" d="M409.9,726.17Q418.22 740.58,426.54 726.17L485.54,623.97Q493.86 609.56,477.22 609.56L359.22,609.56Q342.58 609.56,350.9 623.97Z" /><path class="${getClass(faces.D[5])}" d="M573.45,726.17Q581.77 740.58,590.09 726.17L649.09,623.97Q657.41 609.56,640.77 609.56L522.77,609.56Q506.13 609.56,514.45 623.97Z" /><path class="${getClass(faces.D[6])}" d="M640.77,602.48Q657.41 602.48,649.09 588.07L590.09,485.88Q581.77 471.46,573.45 485.88L514.45,588.07Q506.13 602.48,522.77 602.48Z" /><path class="${getClass(faces.D[7])}" d="M477.22,602.48Q493.86 602.48,485.54 588.07L426.54,485.88Q418.22 471.46,409.9 485.88L350.9,588.07Q342.58 602.48,359.22 602.48Z" /><path class="${getClass(faces.D[8])}" d="M559,744.12Q575.64 744.12,567.32 729.71L508.32,627.52Q500 613.1,491.67 627.52L432.67,729.71Q424.35 744.12,440.99 744.12Z" /><path class="${getClass(faces.L[0])}" d="M226.58,404.02Q234.87 418.32,243.19 403.94L302.19,301.96Q310.51 287.58,293.9 287.66L176.08,288.2Q159.47 288.27,167.76 302.58Z" /><path class="${getClass(faces.L[1])}" d="M390.13,121.34Q398.42 135.64,406.74 121.26L465.74,19.28Q474.06 4.9,457.45 4.98L339.63,5.52Q323.02 5.59,331.31 19.9Z" /><path class="${getClass(faces.L[2])}" d="M63.54,122.83Q71.84 137.14,80.16 122.76L139.16,20.78Q147.48 6.4,130.87 6.47L13.05,7.01Q-3.56 7.09,4.73 21.4Z" /><path class="${getClass(faces.L[3])}" d="M308.35,262.68Q316.65 276.98,324.97 262.6L383.97,160.62Q392.29 146.24,375.67 146.32L257.86,146.86Q241.24 146.93,249.54 161.24Z" /><path class="${getClass(faces.L[4])}" d="M226.84,122.08Q235.13 136.39,243.45 122.01L302.45,20.03Q310.77 5.65,294.16 5.73L176.34,6.27Q159.73 6.34,168.02 20.65Z" /><path class="${getClass(faces.L[5])}" d="M145.06,263.42Q153.36 277.73,161.68 263.35L220.68,161.37Q229 146.99,212.38 147.07L94.57,147.61Q77.95 147.68,86.25 161.99Z" /><path class="${getClass(faces.L[6])}" d="M293.91,280.61Q310.52 280.53,302.23 266.23L243.41,164.79Q235.12 150.49,226.8 164.87L167.8,266.84Q159.48 281.23,176.09 281.15Z" /><path class="${getClass(faces.L[7])}" d="M375.68,139.27Q392.3 139.19,384 124.89L325.19,23.45Q316.89 9.15,308.57 23.53L249.57,125.5Q241.25 139.89,257.87 139.81Z" /><path class="${getClass(faces.L[8])}" d="M212.39,140.02Q229 139.94,220.71 125.64L161.9,24.2Q153.6 9.89,145.28 24.28L86.28,126.25Q77.96 140.63,94.57 140.56Z" /><path class="${getClass(faces.R[0])}" d="M593.25,121.26Q601.57 135.64,609.86 121.34L668.68,19.9Q676.97 5.59,660.36 5.52L542.54,4.98Q525.93 4.9,534.25 19.28Z" /><path class="${getClass(faces.R[1])}" d="M756.8,403.94Q765.12 418.32,773.41 404.02L832.23,302.58Q840.52 288.27,823.91 288.2L706.09,287.66Q689.48 287.58,697.8 301.96Z" /><path class="${getClass(faces.R[2])}" d="M919.83,122.76Q928.15 137.14,936.45 122.83L995.26,21.4Q1003.55 7.09,986.94 7.01L869.12,6.47Q852.51 6.4,860.83 20.78Z" /><path class="${getClass(faces.R[3])}" d="M675.02,262.6Q683.34 276.98,691.64 262.68L750.45,161.24Q758.75 146.93,742.13 146.86L624.32,146.32Q607.7 146.24,616.02 160.62Z" /><path class="${getClass(faces.R[4])}" d="M838.31,263.35Q846.63 277.73,854.93 263.42L913.74,161.99Q922.04 147.68,905.42 147.61L787.61,147.07Q770.99 146.99,779.31 161.37Z" /><path class="${getClass(faces.R[5])}" d="M756.54,122.01Q764.86 136.39,773.15 122.08L831.97,20.65Q840.26 6.34,823.65 6.27L705.83,5.73Q689.22 5.65,697.54 20.03Z" /><path class="${getClass(faces.R[6])}" d="M742.12,139.81Q758.74 139.89,750.42 125.5L691.42,23.53Q683.1 9.15,674.8 23.45L615.99,124.89Q607.69 139.19,624.31 139.27Z" /><path class="${getClass(faces.R[7])}" d="M823.9,281.15Q840.51 281.23,832.19 266.84L773.19,164.87Q764.87 150.49,756.58 164.79L697.76,266.23Q689.47 280.53,706.08 280.61Z" /><path class="${getClass(faces.R[8])}" d="M905.42,140.56Q922.03 140.63,913.71 126.25L854.71,24.28Q846.39 9.89,838.09 24.2L779.28,125.64Q770.99 139.94,787.6 140.02Z" /></svg>`;
+        const classMap = new Map();
+        const paths = [
+            [
+                getClass(faces.F[0]),
+                `<path d="M508.32,37.49Q500 23.11,491.67 37.49L432.67,139.47Q424.35 153.85,440.99 153.85L559,153.85Q575.64 153.85,567.32 139.47Z" />`,
+            ],
+            [
+                getClass(faces.F[1]),
+                `<path d="M344.76,320.17Q336.44 305.79,328.12 320.17L269.12,422.15Q260.8 436.53,277.44 436.53L395.44,436.53Q412.09 436.53,403.77 422.15Z" />`,
+            ],
+            [
+                getClass(faces.F[2]),
+                `<path d="M671.87,320.17Q663.55 305.79,655.23 320.17L596.22,422.15Q587.9 436.53,604.55 436.53L722.55,436.53Q739.19 436.53,730.87 422.15Z" />`,
+            ],
+            [
+                getClass(faces.F[3]),
+                `<path d="M426.54,178.83Q418.22 164.45,409.9 178.83L350.9,280.81Q342.58 295.19,359.22 295.19L477.22,295.19Q493.86 295.19,485.54 280.81Z" />`,
+            ],
+            [
+                getClass(faces.F[4]),
+                `<path d="M508.32,320.17Q500 305.79,491.67 320.17L432.67,422.15Q424.35 436.53,440.99 436.53L559,436.53Q575.64 436.53,567.32 422.15Z" />`,
+            ],
+            [
+                getClass(faces.F[5]),
+                `<path d="M590.09,178.83Q581.77 164.45,573.45 178.83L514.45,280.81Q506.13 295.19,522.77 295.19L640.77,295.19Q657.41 295.19,649.09 280.81Z" />`,
+            ],
+            [
+                getClass(faces.F[6]),
+                `<path d="M440.99,160.92Q424.35 160.92,432.67 175.3L491.67,277.27Q500 291.66,508.32 277.27L567.32,175.3Q575.64 160.92,559 160.92Z" />`,
+            ],
+            [
+                getClass(faces.F[7]),
+                `<path d="M359.22,302.26Q342.58 302.26,350.9 316.64L409.9,418.61Q418.22 433,426.54 418.61L485.54,316.64Q493.86 302.26,477.22 302.26Z" />`,
+            ],
+            [
+                getClass(faces.F[8]),
+                `<path d="M522.77,302.26Q506.13 302.26,514.45 316.64L573.45,418.61Q581.77 433,590.09 418.61L649.09,316.64Q657.41 302.26,640.77 302.26Z" />`,
+            ],
+            [
+                getClass(faces.D[0]),
+                `<path d="M655.23,584.53Q663.55 598.94,671.87 584.53L730.87,482.34Q739.19 467.92,722.55 467.92L604.55,467.92Q587.9 467.92,596.22 482.34Z" />`,
+            ],
+            [
+                getClass(faces.D[1]),
+                `<path d="M328.12,584.53Q336.44 598.94,344.76 584.53L403.77,482.34Q412.09 467.92,395.44 467.92L277.44,467.92Q260.8 467.92,269.12 482.34Z" />`,
+            ],
+            [
+                getClass(faces.D[2]),
+                `<path d="M491.67,867.81Q500 882.22,508.32 867.81L567.32,765.61Q575.64 751.2,559 751.2L440.99,751.2Q424.35 751.2,432.67 765.61Z" />`,
+            ],
+            [
+                getClass(faces.D[3]),
+                `<path d="M491.67,584.53Q500 598.94,508.32 584.53L567.32,482.34Q575.64 467.92,559 467.92L440.99,467.92Q424.35 467.92,432.67 482.34Z" />`,
+            ],
+            [
+                getClass(faces.D[4]),
+                `<path d="M409.9,726.17Q418.22 740.58,426.54 726.17L485.54,623.97Q493.86 609.56,477.22 609.56L359.22,609.56Q342.58 609.56,350.9 623.97Z" />`,
+            ],
+            [
+                getClass(faces.D[5]),
+                `<path d="M573.45,726.17Q581.77 740.58,590.09 726.17L649.09,623.97Q657.41 609.56,640.77 609.56L522.77,609.56Q506.13 609.56,514.45 623.97Z" />`,
+            ],
+            [
+                getClass(faces.D[6]),
+                `<path d="M640.77,602.48Q657.41 602.48,649.09 588.07L590.09,485.88Q581.77 471.46,573.45 485.88L514.45,588.07Q506.13 602.48,522.77 602.48Z" />`,
+            ],
+            [
+                getClass(faces.D[7]),
+                `<path d="M477.22,602.48Q493.86 602.48,485.54 588.07L426.54,485.88Q418.22 471.46,409.9 485.88L350.9,588.07Q342.58 602.48,359.22 602.48Z" />`,
+            ],
+            [
+                getClass(faces.D[8]),
+                `<path d="M559.00,744.12Q575.64 744.12,567.32 729.71L508.32,627.52Q500 613.1,491.67 627.52L432.67,729.71Q424.35 744.12,440.99 744.12Z" />`,
+            ],
+            [
+                getClass(faces.L[0]),
+                `<path d="M226.58,404.02Q234.87 418.32,243.19 403.94L302.19,301.96Q310.51 287.58,293.9 287.66L176.08,288.2Q159.47 288.27,167.76 302.58Z" />`,
+            ],
+            [
+                getClass(faces.L[1]),
+                `<path d="M390.13,121.34Q398.42 135.64,406.74 121.26L465.74,19.28Q474.06 4.9,457.45 4.98L339.63,5.52Q323.02 5.59,331.31 19.9Z" />`,
+            ],
+            [
+                getClass(faces.L[2]),
+                `<path d="M63.54,122.83Q71.84 137.14,80.16 122.76L139.16,20.78Q147.48 6.4,130.87 6.47L13.05,7.01Q-3.56 7.09,4.73 21.4Z" />`,
+            ],
+            [
+                getClass(faces.L[3]),
+                `<path d="M308.35,262.68Q316.65 276.98,324.97 262.6L383.97,160.62Q392.29 146.24,375.67 146.32L257.86,146.86Q241.24 146.93,249.54 161.24Z" />`,
+            ],
+            [
+                getClass(faces.L[4]),
+                `<path d="M226.84,122.08Q235.13 136.39,243.45 122.01L302.45,20.03Q310.77 5.65,294.16 5.73L176.34,6.27Q159.73 6.34,168.02 20.65Z" />`,
+            ],
+            [
+                getClass(faces.L[5]),
+                `<path d="M145.06,263.42Q153.36 277.73,161.68 263.35L220.68,161.37Q229 146.99,212.38 147.07L94.57,147.61Q77.95 147.68,86.25 161.99Z" />`,
+            ],
+            [
+                getClass(faces.L[6]),
+                `<path d="M293.91,280.61Q310.52 280.53,302.23 266.23L243.41,164.79Q235.12 150.49,226.8 164.87L167.8,266.84Q159.48 281.23,176.09 281.15Z" />`,
+            ],
+            [
+                getClass(faces.L[7]),
+                `<path d="M375.68,139.27Q392.3 139.19,384 124.89L325.19,23.45Q316.89 9.15,308.57 23.53L249.57,125.5Q241.25 139.89,257.87 139.81Z" />`,
+            ],
+            [
+                getClass(faces.L[8]),
+                `<path d="M212.39,140.02Q229 139.94,220.71 125.64L161.9,24.2Q153.6 9.89,145.28 24.28L86.28,126.25Q77.96 140.63,94.57 140.56Z" />`,
+            ],
+            [
+                getClass(faces.R[0]),
+                `<path d="M593.25,121.26Q601.57 135.64,609.86 121.34L668.68,19.9Q676.97 5.59,660.36 5.52L542.54,4.98Q525.93 4.9,534.25 19.28Z" />`,
+            ],
+            [
+                getClass(faces.R[1]),
+                `<path d="M756.8,403.94Q765.12 418.32,773.41 404.02L832.23,302.58Q840.52 288.27,823.91 288.2L706.09,287.66Q689.48 287.58,697.8 301.96Z" />`,
+            ],
+            [
+                getClass(faces.R[2]),
+                `<path d="M919.83,122.76Q928.15 137.14,936.45 122.83L995.26,21.4Q1003.55 7.09,986.94 7.01L869.12,6.47Q852.51 6.4,860.83 20.78Z" />`,
+            ],
+            [
+                getClass(faces.R[3]),
+                `<path d="M675.02,262.6Q683.34 276.98,691.64 262.68L750.45,161.24Q758.75 146.93,742.13 146.86L624.32,146.32Q607.7 146.24,616.02 160.62Z" />`,
+            ],
+            [
+                getClass(faces.R[4]),
+                `<path d="M838.31,263.35Q846.63 277.73,854.93 263.42L913.74,161.99Q922.04 147.68,905.42 147.61L787.61,147.07Q770.99 146.99,779.31 161.37Z" />`,
+            ],
+            [
+                getClass(faces.R[5]),
+                `<path d="M756.54,122.01Q764.86 136.39,773.15 122.08L831.97,20.65Q840.26 6.34,823.65 6.27L705.83,5.73Q689.22 5.65,697.54 20.03Z" />`,
+            ],
+            [
+                getClass(faces.R[6]),
+                `<path d="M742.12,139.81Q758.74 139.89,750.42 125.5L691.42,23.53Q683.1 9.15,674.8 23.45L615.99,124.89Q607.69 139.19,624.31 139.27Z" />`,
+            ],
+            [
+                getClass(faces.R[7]),
+                `<path d="M823.9,281.15Q840.51 281.23,832.19 266.84L773.19,164.87Q764.87 150.49,756.58 164.79L697.76,266.23Q689.47 280.53,706.08 280.61Z" />`,
+            ],
+            [
+                getClass(faces.R[8]),
+                `<path d="M905.42,140.56Q922.03 140.63,913.71 126.25L854.71,24.28Q846.39 9.89,838.09 24.2L779.28,125.64Q770.99 139.94,787.6 140.02Z" />`,
+            ],
+        ];
+        paths.forEach((path) => {
+            const val = path[1].replace(/(\d+(\.\d+)?)/g, (match) => {
+                const num = parseFloat(match) / 10;
+                return num.toFixed(2);
+            });
+            if (classMap.has(path[0])) {
+                classMap.get(path[0]).push(val);
+            }
+            else {
+                classMap.set(path[0], [val]);
+            }
+        });
+        return [
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?>`,
+            `<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 100 88">`,
+            `<style>.c0{fill:#009d54;}.c1{fill:#ffeb3b;}.c2{fill:#dc422f;}.c3{fill:#3d81f6;}</style>`,
+            ...Array.from(classMap.entries()).map(([cls, path]) => {
+                return `<g class="${cls}">${path.join("")}</g>`;
+            }),
+            `</svg>`,
+        ].join("");
     };
     return pyra;
 }
@@ -12852,36 +13950,78 @@ function SKEWB() {
         const H = BOX * 3;
         const BOX_FACTOR = 0.9;
         const BOX_OFFSET = (BOX * (1 - BOX_FACTOR)) / 2;
+        const classMap = new Map();
         const drawFace = (bx, by, fn) => {
             const rx = bx * BOX + BOX_OFFSET;
             const ry = by * BOX + BOX_OFFSET;
             const BX = BOX * BOX_FACTOR;
             const BX2 = BX / 2;
-            const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
-            return `<path stroke="black" stroke-width="2" fill="${cols[0]}" d="${getRoundedPath([
-                [rx, ry],
-                [rx, ry + BX2],
-                [rx + BX2, ry],
-            ])}" /><path stroke="black" stroke-width="2" fill="${cols[1]}" d="${getRoundedPath([
-                [rx + BX2, ry],
-                [rx + BX, ry + BX2],
-                [rx + BX, ry],
-            ])}" /><path stroke="black" stroke-width="2" fill="${cols[2]}" d="${getRoundedPath([
-                [rx + BX, ry + BX2],
-                [rx + BX2, ry + BX],
-                [rx + BX, ry + BX],
-            ])}" /><path stroke="black" stroke-width="2" fill="${cols[3]}" d="${getRoundedPath([
-                [rx + BX2, ry + BX],
-                [rx, ry + BX2],
-                [rx, ry + BX],
-            ])}" /><path stroke="black" stroke-width="2" fill="${cols[4]}" d="${getRoundedPath([
-                [rx + BX2, ry],
-                [rx + BX, ry + BX2],
-                [rx + BX2, ry + BX],
-                [rx, ry + BX2],
-            ])}" />`;
+            // const cols = fn.map((c) => STANDARD_PALETTE[FACE_COLOR[c]]);
+            [
+                [
+                    fn[0],
+                    `<path d="${getRoundedPath([
+                        [rx, ry],
+                        [rx, ry + BX2],
+                        [rx + BX2, ry],
+                    ])}" />`,
+                ],
+                [
+                    fn[1],
+                    `<path d="${getRoundedPath([
+                        [rx + BX2, ry],
+                        [rx + BX, ry + BX2],
+                        [rx + BX, ry],
+                    ])}" />`,
+                ],
+                [
+                    fn[2],
+                    `<path d="${getRoundedPath([
+                        [rx + BX, ry + BX2],
+                        [rx + BX2, ry + BX],
+                        [rx + BX, ry + BX],
+                    ])}" />`,
+                ],
+                [
+                    fn[3],
+                    `<path d="${getRoundedPath([
+                        [rx + BX2, ry + BX],
+                        [rx, ry + BX2],
+                        [rx, ry + BX],
+                    ])}" />`,
+                ],
+                [
+                    fn[4],
+                    `<path d="${getRoundedPath([
+                        [rx + BX2, ry],
+                        [rx + BX, ry + BX2],
+                        [rx + BX2, ry + BX],
+                        [rx, ry + BX2],
+                    ])}" />`,
+                ],
+            ].forEach(([c, path]) => {
+                if (!classMap.has(c)) {
+                    classMap.set(c, [path]);
+                }
+                else {
+                    classMap.get(c).push(path);
+                }
+            });
         };
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${drawFace(1, 0, faces.U)}${drawFace(0, 1, faces.L)}${drawFace(1, 1, faces.F)}${drawFace(2, 1, faces.R)}${drawFace(3, 1, faces.B)}${drawFace(1, 2, faces.D)}</svg>`;
+        drawFace(1, 0, faces.U);
+        drawFace(0, 1, faces.L);
+        drawFace(1, 1, faces.F);
+        drawFace(2, 1, faces.R);
+        drawFace(3, 1, faces.B);
+        drawFace(1, 2, faces.D);
+        return [
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
+            `<style>g{stroke:black;stroke-width:1;}</style>`,
+            ...Array.from(classMap.entries()).map(([c, paths]) => {
+                return `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[c]]).toHex(false)}">${paths.join("")}</g>`;
+            }),
+            `</svg>`,
+        ].join("");
     };
     return skewb;
 }
@@ -13020,7 +14160,7 @@ function SQUARE1() {
         B: "orange",
     };
     function getColor(fc) {
-        return STANDARD_PALETTE[colors[fc]];
+        return new Color(STANDARD_PALETTE[colors[fc]]).toHex(false);
     }
     sq1.getImage = () => {
         const W = 200;
@@ -13047,10 +14187,11 @@ function SQUARE1() {
                 .add(new Vector2D(REF.x + OX, REF.y + OY))
                 .toArr());
         };
+        const colorMap = new Map();
+        const F = 0.1;
         const getFace = (fc, OX, OY, my = 1) => {
             const REF = new Vector2D(W_2, W_2);
             const ANG = Math.PI / 6;
-            const res = [];
             let acc = 0;
             for (let i = 0, maxi = fc.length; i < maxi; i += 1) {
                 const pc = fc[i];
@@ -13081,13 +14222,31 @@ function SQUARE1() {
                     });
                 }
                 acc += pc.l;
-                res.push(paths
-                    .map((path, p) => `<path d="${getRoundedPath(path, 0.15)}" fill="${getColor(fc[i].c[p])}" stroke="black" stroke-width="2" />`)
-                    .join(""));
+                paths.forEach((path, p) => {
+                    const fn = fc[i].c[p];
+                    const pth = `<path d="${getRoundedPath(path, 0.15, 1, F)}"/>`;
+                    if (!colorMap.has(fn)) {
+                        colorMap.set(fn, [pth]);
+                    }
+                    else {
+                        colorMap.get(fn).push(pth);
+                    }
+                });
             }
-            return res.join("");
         };
-        return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${svgnum(W * 0.175)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * 0.239)}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${svgnum(W * 0.414)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
+        getFace(faces.U, 0, 0);
+        getFace(faces.D, 0, W, -1);
+        const WF = W * F;
+        return [
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40">`,
+            `<style>g,rect{stroke:black;stroke-width:0.2;}</style>`,
+            ...Array.from(colorMap.entries()).map(([cls, path]) => {
+                return `<g fill="${getColor(cls)}">${path.join("")}</g>`;
+            }),
+            `<rect x="${svgnum(WF * 0.175)}" y="${svgnum(WF * 0.95)}" width="${svgnum(WF * 0.239)}" height="${svgnum(WF * 0.09)}" rx="${svgnum(WF * 0.02)}" ry="${svgnum(WF * 0.02)}" fill="${getColor("F")}" />`,
+            `<rect x="${svgnum(WF * 0.414)}" y="${svgnum(WF * 0.95)}" width="${svgnum(WF * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(WF * 0.09)}" rx="${svgnum(WF * 0.02)}" ry="${svgnum(WF * 0.02)}" fill="${faces.E[0].l & 1 ? getColor("F") : getColor("B")}" />`,
+            `</svg>`,
+        ].join("");
     };
     return sq1;
 }
@@ -13166,226 +14325,6 @@ registerPuzzle("clock", "Rubik's clock", CLOCK, false);
 // registerPuzzle("redi", "Redi", REDI, false);
 // registerPuzzle("helicopter", "Helicopter", HELICOPTER, false);
 // registerPuzzle("fto", "FTO", FTO, false);
-
-function types(arr) {
-    const res = [];
-    for (let i = 0, maxi = arr.length; i < maxi; i += 1) {
-        if (Array.isArray(arr[i])) {
-            res.push("a");
-        }
-        else
-            switch (typeof arr[i]) {
-                case "number":
-                case "string":
-                case "object":
-                case "undefined":
-                case "function": {
-                    res.push((typeof arr[i])[0]);
-                    break;
-                }
-                default: {
-                    res.push("?");
-                    break;
-                }
-            }
-    }
-    return res.join("");
-}
-function adjust(val, a, b) {
-    let ini = a || 0;
-    let fin = b || 255;
-    if (ini > fin) {
-        ini += fin;
-        fin = ini - fin;
-        ini = ini - fin;
-    }
-    return Math.min(Math.max(ini, val), fin);
-}
-class Color {
-    constructor(a, b, c, d, e) {
-        const tp = types([a, b, c, d, e]);
-        this.color = [0, 1, 2].map(() => Math.round(Math.random() * 255));
-        this.color[0] = adjust(this.color[0]);
-        this.color[1] = adjust(this.color[1]);
-        this.color[2] = adjust(this.color[2]);
-        this.color[3] = 1;
-        switch (tp) {
-            case "nnnns": {
-                /*if (e.match(/cmyk/i)) {
-                  this.fromCMYK(a, b, c, d);
-                } else*/
-                if (e.match(/rgba/i)) {
-                    this.fromRGBA(a, b, c, d);
-                }
-                else {
-                    throw new TypeError(`Unknown format color ${e}`);
-                }
-                break;
-            }
-            case "nnnnu": {
-                this.fromRGBA(a, b, c, d);
-                break;
-            }
-            case "nnnsu": {
-                // if (d.match(/cmy/i)) {
-                //   this.fromCMY(a, b, c);
-                // } else if (d.match(/ryb/i)) {
-                //   this.fromRYB(a, b, c);
-                // } else if (d.match(/hsv/i)) {
-                //   this.fromHSV(a, b, c);
-                // } else {
-                throw new TypeError(`Unknown format color ${e}`);
-            }
-            case "nnnuu": {
-                this.fromRGB(a, b, c);
-                break;
-            }
-            case "suuuu": {
-                this.fromString(a);
-                break;
-            }
-        }
-    }
-    set(k, v) {
-        this.color[k] = v;
-    }
-    // fromCMY(C: number, M: number, Y: number) {
-    //   throw new ReferenceError("CMY not supported yet");
-    // }
-    // fromCMYK(C: number, M: number, Y: number, K: number) {
-    //   throw new ReferenceError("CMYK not supported yet");
-    // }
-    // fromRYB(R: number, Y: number, B: number) {
-    //   throw new ReferenceError("RYB not supported yet");
-    // }
-    // fromHSV(HL: number, S: number, V: number) {
-    //   throw new ReferenceError("HSV not supported yet");
-    // }
-    fromRGB(r, g, b) {
-        this.color[0] = adjust(r);
-        this.color[1] = adjust(g);
-        this.color[2] = adjust(b);
-    }
-    fromRGBA(r, g, b, a) {
-        this.fromRGB(r, g, b);
-        this.color[3] = adjust(a, 0, 1);
-    }
-    fromString(s) {
-        const rgbaReg = /$rgba\(([0-9]*),([0-9]*),([0-9]*),([0-9]*)\)$/;
-        const rgbReg = /^rgb\(([0-9]*),([0-9]*),([0-9]*)\)$/;
-        const hexReg = /^#(\w{2})(\w{2})(\w{2})$/;
-        const hex1Reg = /^#(\w{1})(\w{1})(\w{1})$/;
-        const hexaReg = /^#(\w{2})(\w{2})(\w{2})(\w{2})$/;
-        const hexa1Reg = /^#(\w{1})(\w{1})(\w{1})(\w{1})$/;
-        const str = s.replace(/\s/g, "");
-        if (rgbaReg.test(str)) {
-            const [r, g, b, a] = str.replace(rgbaReg, "$1 $2 $3 $4").split(" ").map(Number);
-            this.fromRGBA(r, g, b, a);
-        }
-        else if (rgbReg.test(str)) {
-            const [r, g, b] = str.replace(rgbReg, "$1 $2 $3").split(" ").map(Number);
-            this.fromRGB(r, g, b);
-        }
-        else if (hexaReg.test(str)) {
-            const [r, g, b, a] = str
-                .replace(hexaReg, "$1 $2 $3 $4")
-                .split(" ")
-                .map(e => parseInt(e, 16));
-            this.fromRGBA(r, g, b, a);
-        }
-        else if (hexReg.test(str)) {
-            const [r, g, b] = str
-                .replace(hexReg, "$1 $2 $3")
-                .split(" ")
-                .map(e => parseInt(e, 16));
-            this.fromRGB(r, g, b);
-        }
-        else if (hexa1Reg.test(str)) {
-            const [r, g, b, a] = str
-                .replace(hexa1Reg, "$1$1 $2$2 $3$3 $4$4")
-                .split(" ")
-                .map(e => parseInt(e, 16));
-            this.fromRGBA(r, g, b, a);
-        }
-        else if (hex1Reg.test(str)) {
-            const [r, g, b] = str
-                .replace(hex1Reg, "$1$1 $2$2 $3$3")
-                .split(" ")
-                .map(e => parseInt(e, 16));
-            this.fromRGB(r, g, b);
-        }
-        else {
-            console.log("S: ", s);
-            throw new TypeError("String format other than rgb() or rgba() not supported yet");
-        }
-    }
-    interpolate(col, a) {
-        const c = new Color();
-        c.color = this.color.map((e, p) => e * (1 - a) + col.color[p] * a);
-        return c;
-    }
-    clone() {
-        const res = new Color(0, 0, 0);
-        res.color = this.color.map(e => e);
-        return res;
-    }
-    toHex(alpha = true) {
-        const t = this.color.map(e => e);
-        t[3] = ~~adjust(t[3] * 255);
-        if (!alpha)
-            t.pop();
-        return "#" + t.map(e => ("00" + e.toString(16)).substr(-2, 2)).join("");
-    }
-    toNumber() {
-        let res = 0;
-        for (let i = 0; i < 3; i += 1) {
-            res *= 256;
-            res += this.color[i];
-        }
-        return res;
-    }
-    toRGBStr() {
-        return `rgb(${this.color[0]}, ${this.color[1]}, ${this.color[2]})`;
-    }
-    toRGBAStr() {
-        return `rgba(${this.color[0]}, ${this.color[1]}, ${this.color[2]}, ${~~(this.color[3] * 255)})`;
-    }
-    rgbToHSL() {
-        this.color[0] /= 255;
-        this.color[1] /= 255;
-        this.color[2] /= 255;
-        const r = this.color[0];
-        const g = this.color[1];
-        const b = this.color[2];
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        let h = 0, s;
-        const l = (max + min) / 2;
-        if (max === min) {
-            h = s = 0; // Color neutro
-        }
-        else {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r:
-                    h = (g - b) / d + (g < b ? 6 : 0);
-                    break;
-                case g:
-                    h = (b - r) / d + 2;
-                    break;
-                case b:
-                    h = (r - g) / d + 4;
-                    break;
-            }
-            h *= 60;
-        }
-        return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
-    }
-    toArray() {
-        return this.color.map(e => e);
-    }
-}
 
 function arrayToOrder(arr) {
     if (!arr)
@@ -13519,16 +14458,53 @@ class Puzzle {
     }
 }
 
+function scrambleToPuzzle(scramble, mode) {
+    let cb = [];
+    if (MISC.some((mmode) => typeof mmode === "string" ? mmode === mode : mmode.indexOf(mode) > -1)) {
+        const opts = options.get(mode);
+        cb = ScrambleParser.parseMisc(scramble, mode).map((scr, pos) => Puzzle.fromSequence(scr, { ...opts[pos % opts.length] }, false, true));
+    }
+    else {
+        cb = [
+            Puzzle.fromSequence(scramble, {
+                ...options.get(mode),
+            }, false, true),
+        ];
+    }
+    return cb;
+}
+
+function canGenerateImage(type, o) {
+    const list = [
+        "rubik",
+        "pyraminx",
+        "skewb",
+        "square1",
+        "clock",
+        "megaminx",
+    ];
+    if (type === "rubik")
+        return o.a === o.b && o.b === o.c;
+    if (type === "pyraminx" || type === "megaminx")
+        return o.a === 3;
+    return list.includes(type);
+}
 function genImages(opts) {
     if (!Array.isArray(opts))
         return [];
-    const res = [];
+    let res = [];
     for (let i = 0, maxi = opts.length; i < maxi; i += 1) {
-        const op = options.get(opts[i].type || "333") || { type: "rubik" };
-        const scr = opts[i].scramble || "";
-        if (!Array.isArray(op)) {
-            res.push((Puzzle.fromSequence(scr, op).p.getImage || (() => ""))());
-        }
+        const op = opts[i];
+        const pzs = scrambleToPuzzle(op.scramble, op.type || "333");
+        res = [
+            ...res,
+            ...pzs.map((p) => {
+                if (canGenerateImage(p.type, p.order)) {
+                    return (p.p.getImage || (() => ""))();
+                }
+                return "";
+            }),
+        ];
     }
     return res;
 }
@@ -13537,15 +14513,15 @@ function getScrambles(opts) {
         return [];
     return opts.map((op) => {
         let scr = getScramble(op.scrambler, op.length || 0, op.prob || -1);
-        if (op.image && ScramblerList.includes(op.scrambler)) {
+        if (op.image) {
             return {
                 scramble: scr,
                 image: genImages([
                     { scramble: scr, type: op.scrambler },
-                ])[0],
+                ]),
             };
         }
-        return scr;
+        return { scramble: scr };
     });
 }
 function setSeed(count, seed) {

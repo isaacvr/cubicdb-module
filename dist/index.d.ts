@@ -1,7 +1,7 @@
-import { AScramblers, Scrambler } from "./puzzles/constants";
+import { AScramblers } from "./puzzles/constants";
 interface ImageOptions {
     scramble: string;
-    type: Scrambler;
+    type: AScramblers;
 }
 interface ScrambleOptions {
     scrambler: AScramblers;
@@ -10,9 +10,12 @@ interface ScrambleOptions {
     prob?: number;
 }
 export declare function genImages(opts: ImageOptions[]): string[];
-export declare function getScrambles(opts: ScrambleOptions[]): (string | {
+export declare function getScrambles(opts: ScrambleOptions[]): ({
     scramble: string;
-    image: string;
+    image: string[];
+} | {
+    scramble: string;
+    image?: undefined;
 })[];
 export declare function setSeed(count: number, seed: string): void;
 export declare function getSeed(): {

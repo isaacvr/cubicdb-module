@@ -1,3 +1,4 @@
+import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
 import { svgnum } from "./utils";
 
@@ -9,16 +10,18 @@ export function RUBIK(n: number): PuzzleInterface {
 
   type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
   type FaceColor = keyof typeof STANDARD_PALETTE;
-  const FACE_COLOR: Record<FaceName, FaceColor> = {
-    U: "white",
-    R: "red",
-    F: "green",
-    D: "yellow",
-    L: "orange",
-    B: "blue",
+  type FaceNameN = 0 | 1 | 2 | 3 | 4 | 5;
+
+  const FACE_COLOR: Record<number, FaceColor> = {
+    0: "white",
+    1: "red",
+    2: "green",
+    3: "yellow",
+    4: "orange",
+    5: "blue",
   };
 
-  const faces: Record<FaceName, FaceName[][]> = {
+  const faces: Record<FaceName, FaceNameN[][]> = {
     U: [],
     R: [],
     F: [],
@@ -27,15 +30,16 @@ export function RUBIK(n: number): PuzzleInterface {
     B: [],
   };
 
-  Object.entries(faces).forEach(([e]) => {
+  Object.entries(faces).forEach(([e], p) => {
     const fn = e as FaceName;
-    faces[e as FaceName] = Array.from({ length: n })
+    const fnn = p as FaceNameN;
+    faces[fn] = Array.from({ length: n })
       .fill("")
-      .map(() => Array.from({ length: n }).fill(fn as FaceName) as FaceName[]);
+      .map(() => Array.from({ length: n }).fill(fnn) as FaceNameN[]);
   });
 
-  type Strip = { get(): FaceName[]; set(vals: FaceName[]): void };
-  type Selector = (f: Record<FaceName, FaceName[][]>, k: number) => Strip;
+  type Strip = { get(): FaceNameN[]; set(vals: FaceNameN[]): void };
+  type Selector = (f: Record<FaceName, FaceNameN[][]>, k: number) => Strip;
   type ParsedMove = [
     layers: number,
     base: FaceName,
@@ -196,13 +200,13 @@ export function RUBIK(n: number): PuzzleInterface {
     ],
   };
 
-  function rotateFace(face: FaceName[][], count: number): FaceName[][] {
+  function rotateFace(face: FaceNameN[][], count: number): FaceNameN[][] {
     const n = face.length;
     const times = ((count % 4) + 4) % 4;
 
     const result = Array.from(
       { length: n },
-      () => Array(n).fill("") as FaceName[],
+      () => Array(n).fill(0) as FaceNameN[],
     );
 
     const mapIndex = [
@@ -271,15 +275,23 @@ export function RUBIK(n: number): PuzzleInterface {
     const BOX_OFFSET = (BOX * (1 - BOX_FACTOR)) / 2;
     const RX = 3 / n + 0.4;
 
+    const height = svgnum(CW * PIECE_FACTOR * BOX_FACTOR);
+    const width = svgnum(CW * PIECE_FACTOR * BOX_FACTOR);
+    const rdx = svgnum(RX);
+
     const getRect = (
       x: number,
       y: number,
       bx: number,
       by: number,
-      fc: FaceName,
+      fc: FaceNameN,
     ) => {
-      return `<rect x="${svgnum(bx * BOX + BOX_OFFSET + x * CW * BOX_FACTOR + OFFSET)}" y="${svgnum(by * BOX + BOX_OFFSET + y * CW * BOX_FACTOR + OFFSET)}" width="${svgnum(CW * PIECE_FACTOR * BOX_FACTOR)}" height="${svgnum(CW * PIECE_FACTOR * BOX_FACTOR)}" fill="${STANDARD_PALETTE[FACE_COLOR[fc]]}" rx="${svgnum(RX)}" />`;
+      const rx = svgnum(bx * BOX + BOX_OFFSET + x * CW * BOX_FACTOR + OFFSET);
+      const ry = svgnum(by * BOX + BOX_OFFSET + y * CW * BOX_FACTOR + OFFSET);
+      return `<rect x="${rx}" y="${ry}" width="${width}" height="${height}" />`;
     };
+
+    const classMap: Map<FaceNameN, string[]> = new Map();
 
     const allPieces = [
       ["U", 1, 0],
@@ -288,19 +300,30 @@ export function RUBIK(n: number): PuzzleInterface {
       ["R", 2, 1],
       ["B", 3, 1],
       ["D", 1, 2],
-    ]
-      .map((e) =>
-        faces[e[0] as FaceName]
-          .map((v, y) =>
-            v
-              .map((fc, x) => getRect(x, y, e[1] as number, e[2] as number, fc))
-              .join(""),
-          )
-          .join(""),
-      )
-      .join("");
+    ].map((e) =>
+      faces[e[0] as FaceName].map((v, y) =>
+        v.forEach((fc, x) => {
+          let cl = fc;
+          let rect = getRect(x, y, e[1] as number, e[2] as number, fc);
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">${allPieces}</svg>`;
+          if (classMap.has(cl)) {
+            classMap.get(cl)!.push(rect);
+          } else {
+            classMap.set(cl, [rect]);
+          }
+        }),
+      ),
+    );
+
+    return [
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
+      `<style>rect{rx:${rdx};}</style>`,
+      ...Array.from(classMap.entries()).map(
+        (v) =>
+          `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[v[0]]]).toHex(false)}">${v[1].join("")}</g>`,
+      ),
+      `</svg>`,
+    ].join("");
   };
 
   return rubik;

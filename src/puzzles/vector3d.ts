@@ -13,7 +13,9 @@ function getCanonical(v: Vector3D) {
 
   let cmps = [v.x, v.y, v.z];
 
-  cmps = cmps.map(n => (Math.abs(n - Math.round(n)) < EPS ? Math.round(n) : n));
+  cmps = cmps.map((n) =>
+    Math.abs(n - Math.round(n)) < EPS ? Math.round(n) : n,
+  );
 
   return new Vector3D(cmps[0], cmps[1], cmps[2]);
 }
@@ -39,11 +41,18 @@ export class Vector3D {
 
   static crossValue(a: Vector3D, b: Vector3D, c: Vector3D): number {
     return (
-      a.x * (b.y * c.z - c.y * b.z) - a.y * (b.x * c.z - c.x * b.z) + a.z * (b.x * c.y - c.x * b.y)
+      a.x * (b.y * c.z - c.y * b.z) -
+      a.y * (b.x * c.z - c.x * b.z) +
+      a.z * (b.x * c.y - c.x * b.y)
     );
   }
 
-  static direction(p1: Vector3D, p2: Vector3D, p3: Vector3D, vec: Vector3D): -1 | 0 | 1 {
+  static direction(
+    p1: Vector3D,
+    p2: Vector3D,
+    p3: Vector3D,
+    vec: Vector3D,
+  ): -1 | 0 | 1 {
     return Vector3D.direction1(p1, Vector3D.cross(p1, p2, p3), vec);
   }
 
@@ -55,7 +64,12 @@ export class Vector3D {
     return <-1 | 0 | 1>Math.sign(dot);
   }
 
-  static project(pt: Vector3D, a: Vector3D, b: Vector3D, c: Vector3D): Vector3D {
+  static project(
+    pt: Vector3D,
+    a: Vector3D,
+    b: Vector3D,
+    c: Vector3D,
+  ): Vector3D {
     return Vector3D.project1(pt, a, Vector3D.cross(a, b, c).unit());
   }
 
@@ -79,7 +93,6 @@ export class Vector3D {
 
   reflect(a: Vector3D, b: Vector3D, c: Vector3D, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
     return this.reflect1(a, Vector3D.cross(a, b, c).unit(), self);
@@ -87,7 +100,6 @@ export class Vector3D {
 
   reflect1(a: Vector3D, u: Vector3D, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
@@ -99,8 +111,8 @@ export class Vector3D {
       new Vector3D(
         this.y * v.z - this.z * v.y,
         this.z * v.x - this.x * v.z,
-        this.x * v.y - this.y * v.x
-      )
+        this.x * v.y - this.y * v.x,
+      ),
     );
   }
 
@@ -110,7 +122,6 @@ export class Vector3D {
 
   add(v: Vector3D, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
@@ -125,7 +136,6 @@ export class Vector3D {
 
   sub(v: Vector3D, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
@@ -140,7 +150,6 @@ export class Vector3D {
 
   mul(f: number, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
@@ -155,7 +164,6 @@ export class Vector3D {
 
   div(f: number, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
@@ -170,18 +178,17 @@ export class Vector3D {
 
   rotate(O: Vector3D, u: Vector3D, ang: number, self?: boolean): Vector3D {
     if (self && this.isConstant) {
-      console.log("Trying to modify a constant vector");
       return this;
     }
 
-    const vecs = [0, 1, 2].map(n => [[RIGHT, UP, FRONT][n], n]);
-    const fAngs = [0, 1, 2, 3].map(n => [(n * PI) / 2, n]);
+    const vecs = [0, 1, 2].map((n) => [[RIGHT, UP, FRONT][n], n]);
+    const fAngs = [0, 1, 2, 3].map((n) => [(n * PI) / 2, n]);
     const rAng = ((ang % TAU) + TAU) % TAU;
 
     if (
       O.abs() < EPS &&
-      vecs.some(v => (v[0] as Vector3D).cross(u).abs() < EPS) &&
-      fAngs.some(a => Math.abs(a[0] - rAng) < EPS)
+      vecs.some((v) => (v[0] as Vector3D).cross(u).abs() < EPS) &&
+      fAngs.some((a) => Math.abs(a[0] - rAng) < EPS)
     ) {
       const idx = [
         (vt: Vector3D) => new Vector3D(vt.x, -vt.z, vt.y), // RIGHT => (x, y, z) => (x, -z, y)
@@ -189,9 +196,12 @@ export class Vector3D {
         (vt: Vector3D) => new Vector3D(-vt.y, vt.x, vt.z), // FRONT => (x, y, z) => (-y, x, z)
       ];
 
-      const aIndex = fAngs.filter(a => Math.abs(a[0] - rAng) < EPS)[0][1];
-      const vIndex = vecs.filter(v => (v[0] as Vector3D).cross(u).abs() < EPS)[0][1] as number;
-      const cant = (vecs[vIndex][0] as Vector3D).dot(u) > 0 ? aIndex : (4 - aIndex) % 4;
+      const aIndex = fAngs.filter((a) => Math.abs(a[0] - rAng) < EPS)[0][1];
+      const vIndex = vecs.filter(
+        (v) => (v[0] as Vector3D).cross(u).abs() < EPS,
+      )[0][1] as number;
+      const cant =
+        (vecs[vIndex][0] as Vector3D).dot(u) > 0 ? aIndex : (4 - aIndex) % 4;
       let vt = this.clone();
 
       for (let i = 1; i <= cant; i += 1) {
@@ -262,7 +272,9 @@ export class Vector3D {
   }
 
   toNormal(): Vector3D {
-    const coords = [this.x, this.y, this.z].map(e => (Math.abs(e) < EPS ? 0 : Math.sign(e)));
+    const coords = [this.x, this.y, this.z].map((e) =>
+      Math.abs(e) < EPS ? 0 : Math.sign(e),
+    );
     this.x = coords[0];
     this.y = coords[1];
     this.z = coords[2];

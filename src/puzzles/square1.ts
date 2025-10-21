@@ -1,3 +1,4 @@
+import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
 import { getRoundedPath, svgnum } from "./utils";
 import { Vector2D } from "./vector2d";
@@ -112,7 +113,7 @@ export function SQUARE1(): PuzzleInterface {
   };
 
   function getColor(fc: FaceName): string {
-    return STANDARD_PALETTE[colors[fc]];
+    return new Color(STANDARD_PALETTE[colors[fc]]).toHex(false);
   }
 
   sq1.getImage = () => {
@@ -151,10 +152,12 @@ export function SQUARE1(): PuzzleInterface {
       );
     };
 
+    const colorMap: Map<string, string[]> = new Map();
+    const F = 0.1;
+
     const getFace = (fc: SQPiece[], OX: number, OY: number, my = 1) => {
       const REF = new Vector2D(W_2, W_2);
       const ANG = Math.PI / 6;
-      const res: string[] = [];
       let acc = 0;
 
       for (let i = 0, maxi = fc.length; i < maxi; i += 1) {
@@ -201,20 +204,34 @@ export function SQUARE1(): PuzzleInterface {
           });
         }
         acc += pc.l;
-        res.push(
-          paths
-            .map(
-              (path, p) =>
-                `<path d="${getRoundedPath(path, 0.15)}" fill="${getColor(fc[i].c[p])}" stroke="black" stroke-width="2" />`,
-            )
-            .join(""),
-        );
-      }
 
-      return res.join("");
+        paths.forEach((path, p) => {
+          const fn = fc[i].c[p];
+          const pth = `<path d="${getRoundedPath(path, 0.15, 1, F)}"/>`;
+          if (!colorMap.has(fn)) {
+            colorMap.set(fn, [pth]);
+          } else {
+            colorMap.get(fn)!.push(pth);
+          }
+        });
+      }
     };
 
-    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 200 400" class="NzJiZmJlZDYtZjgx">${getFace(faces.U, 0, 0)}${getFace(faces.D, 0, W, -1)}<rect x="${svgnum(W * 0.175)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * 0.239)}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${getColor("F")} /> <rect x="${svgnum(W * 0.414)}" y="${svgnum(W * 0.95)}" width="${svgnum(W * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(W * 0.09)}" rx="${svgnum(W * 0.02)}" ry="${svgnum(W * 0.02)}" stroke="black" stroke-width="2" fill=${faces.E[0].l & 1 ? getColor("F") : getColor("B")} /> </svg>`;
+    getFace(faces.U, 0, 0);
+    getFace(faces.D, 0, W, -1);
+
+    const WF = W * F;
+
+    return [
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40">`,
+      `<style>g,rect{stroke:black;stroke-width:0.2;}</style>`,
+      ...Array.from(colorMap.entries()).map(([cls, path]) => {
+        return `<g fill="${getColor(cls as FaceName)}">${path.join("")}</g>`;
+      }),
+      `<rect x="${svgnum(WF * 0.175)}" y="${svgnum(WF * 0.95)}" width="${svgnum(WF * 0.239)}" height="${svgnum(WF * 0.09)}" rx="${svgnum(WF * 0.02)}" ry="${svgnum(WF * 0.02)}" fill="${getColor("F")}" />`,
+      `<rect x="${svgnum(WF * 0.414)}" y="${svgnum(WF * 0.95)}" width="${svgnum(WF * (faces.E[0].l & 1 ? 0.412 : 0.239))}" height="${svgnum(WF * 0.09)}" rx="${svgnum(WF * 0.02)}" ry="${svgnum(WF * 0.02)}" fill="${faces.E[0].l & 1 ? getColor("F") : getColor("B")}" />`,
+      `</svg>`,
+    ].join("");
   };
 
   return sq1;

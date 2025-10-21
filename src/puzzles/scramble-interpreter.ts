@@ -32,7 +32,10 @@ const RubikSpec = [
   [/^\]([1-9]\d{0,1})?/, "]"],
 
   // Move:
-  [/^([\d]+)?([FRUBLDfrubldzxySME])(?:([w])|&sup([\d]);)?('|2'|2|3'|3)?/, "MOVE"],
+  [
+    /^([\d]+)?([FRUBLDfrubldzxySME])(?:([w])|&sup([\d]);)?('|2'|2|3'|3)?/,
+    "MOVE",
+  ],
 ] as const;
 
 const SquareOneSpec = [
@@ -264,7 +267,7 @@ class Solver {
   }
 
   invert(seq: string[]): string[] {
-    return seq.map(s => ScrambleParser.inverse(this.tokenizerType, s));
+    return seq.map((s) => ScrambleParser.inverse(this.tokenizerType, s));
   }
 
   invertFlat(seq: IToken[]): IToken[] {
@@ -300,8 +303,10 @@ class Solver {
     mp1.set("3", -1);
     mp1.set("3'", 1);
 
-    const s1 = seq.map(s => {
-      const p: any = s.replace(/^(\d*)([a-zA-Z]+)('|2'|2|3'|3)?$/, "$1$2 $3").split(" ");
+    const s1 = seq.map((s) => {
+      const p: any = s
+        .replace(/^(\d*)([a-zA-Z]+)('|2'|2|3'|3)?$/, "$1$2 $3")
+        .split(" ");
       return [p[0], mp1.get(p[1])];
     });
 
@@ -314,14 +319,14 @@ class Solver {
       }
     }
 
-    return s1.filter(p => p[1]).map(p => p[0] + mp.get(p[1]));
+    return s1.filter((p) => p[1]).map((p) => p[0] + mp.get(p[1]));
   }
 
   solve(ast: IToken, simplify = true): string | string[] {
     switch (ast.type) {
       case "Program":
         return (simplify ? this.simplify : (e: any) => e)(
-          this.solve(ast.value, simplify) as string[]
+          this.solve(ast.value, simplify) as string[],
         ).join(" ");
       case "Expression":
         return ast.value
@@ -429,7 +434,10 @@ export class Interpreter {
   private throwErrors: boolean;
   private moveCursor: number = 0;
 
-  constructor(throwErrors: boolean = true, tokenizerType: PuzzleType = "rubik") {
+  constructor(
+    throwErrors: boolean = true,
+    tokenizerType: PuzzleType = "rubik",
+  ) {
     this._tokenizer = new BaseTokenizer(throwErrors, tokenizerType);
     this._solver = new Solver(tokenizerType);
     this._lookahead = null;
@@ -449,7 +457,11 @@ export class Interpreter {
     return this._solver.solve(pr, simplify);
   }
 
-  getTree(string: string): { error: boolean | null; cursor: any; program: IToken } {
+  getTree(string: string): {
+    error: boolean | null;
+    cursor: any;
+    program: IToken;
+  } {
     let pr;
 
     try {
@@ -535,11 +547,15 @@ export class Interpreter {
           break;
         }
         default:
-          return moves.length === 1 ? moves[0] : { type: "Expression", value: moves, cursor: -1 };
+          return moves.length === 1
+            ? moves[0]
+            : { type: "Expression", value: moves, cursor: -1 };
       }
     }
 
-    return moves.length === 1 ? moves[0] : { type: "Expression", value: moves, cursor: -1 };
+    return moves.length === 1
+      ? moves[0]
+      : { type: "Expression", value: moves, cursor: -1 };
   }
 
   /**
@@ -567,7 +583,11 @@ export class Interpreter {
     const expr = this.Expression();
     const n = +this._eat(")").value.slice(1);
     const cant = n || 1;
-    return { type: "ParentesizedExpression", value: { expr, cant, explicit: !!n }, cursor: -1 };
+    return {
+      type: "ParentesizedExpression",
+      value: { expr, cant, explicit: !!n },
+      cursor: -1,
+    };
   }
 
   /**
@@ -627,12 +647,16 @@ export class Interpreter {
 
     if (token.type != tokenType) {
       this._throwCursor();
-      throw new SyntaxError(`Unexpected token: ${token.type}, expected: ${tokenType}`);
+      throw new SyntaxError(
+        `Unexpected token: ${token.type}, expected: ${tokenType}`,
+      );
     }
 
     if (tokenValue && token.value != tokenValue) {
       this._throwCursor();
-      throw new SyntaxError(`Error, expected "${tokenValue}" but got "${token.value}"`);
+      throw new SyntaxError(
+        `Error, expected "${tokenValue}" but got "${token.value}"`,
+      );
     }
 
     this._lookahead = this._tokenizer.getNextToken();

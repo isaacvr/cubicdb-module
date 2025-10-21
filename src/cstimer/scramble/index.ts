@@ -28,17 +28,19 @@ import * as pGear from "./gearcube";
 import * as pMega from "./megascramble";
 import * as pPyra from "./pyraminx";
 import * as p444 from "./scamble_444";
-import * as pScramble from "./scramble";
 import * as p333 from "./scramble_333";
 import * as pSq1 from "./scramble_sq1";
 import * as pSkewb from "./skewb";
 import * as pUtils from "./utilscramble";
 import * as pKilo from "./kilominx";
+import * as pScramble from "./scramble";
 
 function getScramble(mode: string, len: number, pb: number): string {
   return (pScramble.scramblers.get(mode) || (() => ""))
     .apply(null, [mode, Math.abs(len), pb < 0 ? undefined : pb])
-    .replace(/\\n/g, "<br>")
+    .split(/\\n/g)
+    .map((e: string) => e.trim())
+    .join("\n")
     .trim();
 }
 
