@@ -19,14 +19,7 @@ interface ScrambleOptions {
 }
 
 function canGenerateImage(type: PuzzleType, o: IPuzzleOrder): boolean {
-  const list: PuzzleType[] = [
-    "rubik",
-    "pyraminx",
-    "skewb",
-    "square1",
-    "clock",
-    "megaminx",
-  ];
+  const list: PuzzleType[] = ["skewb", "square1", "clock"];
 
   if (type === "rubik") return o.a === o.b && o.b === o.c;
   if (type === "pyraminx" || type === "megaminx") return o.a === 3;

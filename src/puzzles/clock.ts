@@ -1,4 +1,5 @@
 import { PuzzleInterface } from "./constants";
+import { randomCSSId } from "./strings";
 import { svgnum } from "./utils";
 import { CENTER, DOWN, FRONT, Vector3D } from "./vector3d";
 
@@ -132,7 +133,7 @@ function drawSingleClock(
   }
 }
 
-function clockImage(cube: PuzzleInterface, DIM: number) {
+function clockImage(cube: PuzzleInterface, DIM: number, ID: string) {
   const W = svgnum(DIM * 2.2);
   const PINS1 = cube.raw[0];
   const PINS2 = cube.raw[0].map(
@@ -204,10 +205,14 @@ function clockImage(cube: PuzzleInterface, DIM: number) {
   }, [] as string[][]);
 
   return [
-    `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}">`,
-    `<style>circle{stroke-width:0.1;}${
-      [BLACK, WHITE, GRAY, RED].map((c, p) => `.f${p}{fill:${c};}`).join("") +
-      [BLACK, WHITE, GRAY, RED].map((c, p) => `.s${p}{stroke:${c};}`).join("")
+    `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}" class="${ID}">`,
+    `<style>.${ID} circle{stroke-width:0.1;}${
+      [BLACK, WHITE, GRAY, RED]
+        .map((c, p) => `.${ID} .f${p}{fill:${c};}`)
+        .join("") +
+      [BLACK, WHITE, GRAY, RED]
+        .map((c, p) => `.${ID} .s${p}{stroke:${c};}`)
+        .join("")
     }</style>`,
     groups
       .map((g) => {
@@ -231,6 +236,8 @@ export function CLOCK(): PuzzleInterface {
       gray: "#7f7f7f",
     },
   };
+
+  const ID = randomCSSId();
 
   const pins: boolean[] = [false, false, false, false];
   const clocks = [
@@ -309,7 +316,7 @@ export function CLOCK(): PuzzleInterface {
     }
   };
 
-  clock.getImage = () => clockImage(clock, 100);
+  clock.getImage = () => clockImage(clock, 100, ID);
 
   clock.raw = [pins, clocks];
 

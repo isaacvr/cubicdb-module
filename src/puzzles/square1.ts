@@ -1,5 +1,6 @@
 import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
+import { randomCSSId } from "./strings";
 import { getRoundedPath, svgnum } from "./utils";
 import { Vector2D } from "./vector2d";
 
@@ -8,6 +9,8 @@ export function SQUARE1(): PuzzleInterface {
     palette: STANDARD_PALETTE,
     move: () => true,
   };
+
+  const ID = randomCSSId();
 
   type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 
@@ -223,8 +226,8 @@ export function SQUARE1(): PuzzleInterface {
     const WF = W * F;
 
     return [
-      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40">`,
-      `<style>g,rect{stroke:black;stroke-width:0.2;}</style>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40" class="${ID}">`,
+      `<style>.${ID} g,.${ID} rect{stroke:black;stroke-width:0.2;}</style>`,
       ...Array.from(colorMap.entries()).map(([cls, path]) => {
         return `<g fill="${getColor(cls as FaceName)}">${path.join("")}</g>`;
       }),

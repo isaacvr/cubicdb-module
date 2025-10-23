@@ -5,4 +5,6 @@ type IToken = ReturnType<Interpreter["getTree"]>["program"];
 export declare function getTreeString(token: IToken, puzzle: PuzzleType): string;
 export declare function parseReconstruction(s: string, puzzle: PuzzleType, order: number): IReconstruction;
 export declare function prettyScramble(scramble: string): string;
+export declare function randomUUID(): string;
+export declare function randomCSSId(): string;
 export {};

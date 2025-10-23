@@ -32,10 +32,7 @@ const { getScrambles, genImages, setSeed, getSeed } = require("cubicdb-module");
 ```ts
 import { getScrambles } from "cubicdb-module";
 
-const scrambles = getScrambles([
-  { scrambler: "333", length: 20 },
-  { scrambler: "222", length: 11 },
-]);
+const scrambles = getScrambles([{ scrambler: "333" }, { scrambler: "222so" }]);
 
 console.log(scrambles);
 // ["R U R' U' ...", "F R U R' ..."]
@@ -79,9 +76,9 @@ You can use the [CubicDB](https://cubicdb.netlify.app) image generator with the 
 import { getScrambles } from "cubicdb-module";
 
 const withImages = getScrambles([
-  { scrambler: "333", length: 20, image: true },
-  { scrambler: "222", length: 11, image: true },
-  { scrambler: "222", length: 11 },
+  { scrambler: "333", image: true },
+  { scrambler: "222so", image: true },
+  { scrambler: "222so" },
 ]);
 
 console.log(withImages);
@@ -107,7 +104,7 @@ import { setSeed, getSeed, getScrambles } from "cubicdb-module";
 setSeed(147, "cubicdb-module-seed");
 
 // Generate reproducible scrambles
-const scrambles = getScrambles([{ scrambler: "333", length: 20 }]);
+const scrambles = getScrambles([{ scrambler: "333" }]);
 
 console.log(scrambles[0]);
 // R2 U2 R U2 B2 R B2 R' B2 R2 U F U' L' F' D2 B F' D'

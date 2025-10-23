@@ -5170,7 +5170,7 @@ function getTreeString(token, puzzle) {
                     if (m) {
                         return m
                             .slice(1)
-                            .map(s => operators.test(s)
+                            .map((s) => operators.test(s)
                             ? `<span class="operator" data-cursor="${token.cursor}">${s}</span>`
                             : /\d$/.test(s)
                                 ? s === "0"
@@ -5190,7 +5190,7 @@ function getTreeString(token, puzzle) {
             return defaultInner(value, false);
         }
         case "Expression": {
-            return value.map(t => getTreeString(t, puzzle)).join("");
+            return value.map((t) => getTreeString(t, puzzle)).join("");
         }
         case "ParentesizedExpression": {
             return (`<span class="operator" data-cursor="${token.cursor}">(</span>` +
@@ -5235,20 +5235,16 @@ function getMoveLength(sequence, puzzle, order) {
                 ], []).length;
             }
             case "skewb": {
-                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseSkewb(e)], [])
-                    .length;
+                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseSkewb(e)], []).length;
             }
             case "square1": {
-                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseSquare1(e)], [])
-                    .length;
+                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseSquare1(e)], []).length;
             }
             case "megaminx": {
-                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseMegaminx(e)], [])
-                    .length;
+                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parseMegaminx(e)], []).length;
             }
             case "pyraminx": {
-                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parsePyraminx(e)], [])
-                    .length;
+                return sequence.reduce((acc, e) => [...acc, ...ScrambleParser.parsePyraminx(e)], []).length;
             }
             case "clock": {
                 return ScrambleParser.parseClock(sequence.join(" ")).length;
@@ -5275,8 +5271,8 @@ function parseReconstruction(s, puzzle, order) {
         }
         else {
             const program = itp.getFlat(tree.program);
-            const flat = program.filter(token => token.cursor >= 0);
-            const sequence = flat.map(token => token.value);
+            const flat = program.filter((token) => token.cursor >= 0);
+            const sequence = flat.map((token) => token.value);
             let sequenceIndex = [];
             const finalAlpha = getMoveLength(sequence, puzzle, order);
             switch (puzzle) {
@@ -5287,7 +5283,7 @@ function parseReconstruction(s, puzzle, order) {
                     break;
                 }
                 default: {
-                    sequenceIndex = flat.map(token => token.cursor);
+                    sequenceIndex = flat.map((token) => token.cursor);
                 }
             }
             return {
@@ -5332,6 +5328,23 @@ function prettyScramble(scramble) {
         .trim()
         .replace(/\s*<br>\s*/g, "\n")
         .replace(/(\n\s+)/g, "\n");
+}
+function randomUUID() {
+    if (crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    const lens = [8, 4, 4, 4, 12];
+    const res = [];
+    for (let i = 0; i < 5; i += 1) {
+        res[i] = [];
+        for (let j = 0; j < lens[i]; j += 1) {
+            res[i].push(Math.random().toString(16).slice(2));
+        }
+    }
+    return res.map((s) => s.join("")).join("-");
+}
+function randomCSSId() {
+    return btoa(randomUUID()).slice(0, 16);
 }
 
 const scrambleReg = /^([\d]+)?([FRUBLDfrubldzxySME])(?:([w])|&sup([\d]);)?('|2'|2|3'|3)?$/;
@@ -12222,7 +12235,7 @@ function drawSingleClock(parts, RAD, X, Y, MAT, PINS, { BLACK, WHITE, GRAY, RED,
         }
     }
 }
-function clockImage(cube, DIM) {
+function clockImage(cube, DIM, ID) {
     const W = svgnum(DIM * 2.2);
     const PINS1 = cube.raw[0];
     const PINS2 = cube.raw[0].map((e, p) => !PINS1[((p >> 1) << 1) + 1 - (p & 1)]);
@@ -12285,9 +12298,13 @@ function clockImage(cube, DIM) {
         return acc;
     }, []);
     return [
-        `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}">`,
-        `<style>circle{stroke-width:0.1;}${[BLACK, WHITE, GRAY, RED].map((c, p) => `.f${p}{fill:${c};}`).join("") +
-            [BLACK, WHITE, GRAY, RED].map((c, p) => `.s${p}{stroke:${c};}`).join("")}</style>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W * F} ${DIM * F}" class="${ID}">`,
+        `<style>.${ID} circle{stroke-width:0.1;}${[BLACK, WHITE, GRAY, RED]
+            .map((c, p) => `.${ID} .f${p}{fill:${c};}`)
+            .join("") +
+            [BLACK, WHITE, GRAY, RED]
+                .map((c, p) => `.${ID} .s${p}{stroke:${c};}`)
+                .join("")}</style>`,
         groups
             .map((g) => {
             if (g.length === 2) {
@@ -12309,6 +12326,7 @@ function CLOCK() {
             gray: "#7f7f7f",
         },
     };
+    const ID = randomCSSId();
     const pins = [false, false, false, false];
     const clocks = [
         [
@@ -12379,7 +12397,7 @@ function CLOCK() {
             }
         }
     };
-    clock.getImage = () => clockImage(clock, 100);
+    clock.getImage = () => clockImage(clock, 100, ID);
     clock.raw = [pins, clocks];
     return clock;
 }
@@ -12389,6 +12407,7 @@ function MEGAMINX() {
         palette: STANDARD_PALETTE,
         move: () => false,
     };
+    const ID = randomCSSId();
     const faces = {
         U: ["U", "U", "U", "U", "U", "U", "U", "U", "U", "U", "U"],
         R: ["R", "R", "R", "R", "R", "R", "R", "R", "R", "R", "R"],
@@ -13071,11 +13090,11 @@ function MEGAMINX() {
             }
         });
         return [
-            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 150 75"><style>path{stroke:black;stroke-width:0.2;stroke-linecap:square;}.c0{fill:#e6e6e6;}.c1{fill:#dc422f;}.c2{fill:#009d54;}.c3{fill:#8a1bff;}.c4{fill:#ffeb3b;}.c5{fill:#3d81f6;}.c6{fill:#707070;}.c7{fill:#53b1f3;}.c8{fill:#dcd3a5;}.c9{fill:#ed96a1;}.c10{fill:#4ad931;}.c11{fill:#e87000;}.c12,.c13{ alignment-baseline:middle;fill:#191919;text-anchor:middle;}</style>`,
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 150 75" class="${ID}"><style>.${ID} path{stroke:black;stroke-width:0.2;stroke-linecap:square;}.${ID} .c0{fill:#e6e6e6;}.${ID} .c1{fill:#dc422f;}.${ID} .c2{fill:#009d54;}.${ID} .c3{fill:#8a1bff;}.${ID} .c4{fill:#ffeb3b;}.${ID} .c5{fill:#3d81f6;}.${ID} .c6{fill:#707070;}.${ID} .c7{fill:#53b1f3;}.${ID} .c8{fill:#dcd3a5;}.${ID} .c9{fill:#ed96a1;}.${ID} .c10{fill:#4ad931;}.${ID} .c11{fill:#e87000;}.${ID} .c12{ alignment-baseline:middle;fill:#191919;text-anchor:middle;}</style>`,
             ...Array.from(classMap.entries()).map(([cls, path]) => {
                 return `<g class="${cls}">${path.join("")}</g>`;
             }),
-            `<text x="38.7" y="34.27" font-size="7.5" class="c12">U</text><text x="38.7" y="60" font-size="7.5" class="c13">F</text> </svg>`,
+            `<text x="38.7" y="34.27" font-size="7.5" class="c12">U</text><text x="38.7" y="60" font-size="7.5" class="c12">F</text> </svg>`,
         ].join("");
     };
     return mega;
@@ -13308,6 +13327,7 @@ function RUBIK(n) {
         palette: STANDARD_PALETTE,
         move: () => false,
     };
+    const ID = randomCSSId();
     const FACE_COLOR = {
         0: "white",
         1: "red",
@@ -13546,8 +13566,8 @@ function RUBIK(n) {
             }
         })));
         return [
-            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
-            `<style>rect{rx:${rdx};}</style>`,
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin" class="${ID}">`,
+            `<style>.${ID} rect{rx:${rdx};}</style>`,
             ...Array.from(classMap.entries()).map((v) => `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[v[0]]]).toHex(false)}">${v[1].join("")}</g>`),
             `</svg>`,
         ].join("");
@@ -13565,6 +13585,7 @@ function PYRAMINX() {
         palette: STANDARD_PALETTE,
         move: () => true,
     };
+    const ID = randomCSSId();
     const faces = {
         F: ["F", "F", "F", "F", "F", "F", "F", "F", "F"],
         R: ["R", "R", "R", "R", "R", "R", "R", "R", "R"],
@@ -13847,8 +13868,8 @@ function PYRAMINX() {
         });
         return [
             `<?xml version="1.0" encoding="UTF-8" standalone="no"?>`,
-            `<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 100 88">`,
-            `<style>.c0{fill:#009d54;}.c1{fill:#ffeb3b;}.c2{fill:#dc422f;}.c3{fill:#3d81f6;}</style>`,
+            `<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 100 88" class="${ID}">`,
+            `<style>.${ID} .c0{fill:#009d54;}.${ID} .c1{fill:#ffeb3b;}.${ID} .c2{fill:#dc422f;}.${ID} .c3{fill:#3d81f6;}</style>`,
             ...Array.from(classMap.entries()).map(([cls, path]) => {
                 return `<g class="${cls}">${path.join("")}</g>`;
             }),
@@ -13863,6 +13884,7 @@ function SKEWB() {
         palette: STANDARD_PALETTE,
         move: () => true,
     };
+    const ID = randomCSSId();
     const FACE_COLOR = {
         U: "white",
         R: "red",
@@ -14017,8 +14039,8 @@ function SKEWB() {
         drawFace(3, 1, faces.B);
         drawFace(1, 2, faces.D);
         return [
-            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
-            `<style>g{stroke:black;stroke-width:1;}</style>`,
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin" class="${ID}">`,
+            `<style>.${ID} g{stroke:black;stroke-width:1;}</style>`,
             ...Array.from(classMap.entries()).map(([c, paths]) => {
                 return `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[c]]).toHex(false)}">${paths.join("")}</g>`;
             }),
@@ -14071,6 +14093,7 @@ function SQUARE1() {
         palette: STANDARD_PALETTE,
         move: () => true,
     };
+    const ID = randomCSSId();
     const faces = {
         U: [
             { l: 2, c: ["U", "L", "F"] }, // Start with the front-left piece of the / clockwise
@@ -14240,8 +14263,8 @@ function SQUARE1() {
         getFace(faces.D, 0, W, -1);
         const WF = W * F;
         return [
-            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40">`,
-            `<style>g,rect{stroke:black;stroke-width:0.2;}</style>`,
+            `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 20 40" class="${ID}">`,
+            `<style>.${ID} g,.${ID} rect{stroke:black;stroke-width:0.2;}</style>`,
             ...Array.from(colorMap.entries()).map(([cls, path]) => {
                 return `<g fill="${getColor(cls)}">${path.join("")}</g>`;
             }),
@@ -14477,14 +14500,7 @@ function scrambleToPuzzle(scramble, mode) {
 }
 
 function canGenerateImage(type, o) {
-    const list = [
-        "rubik",
-        "pyraminx",
-        "skewb",
-        "square1",
-        "clock",
-        "megaminx",
-    ];
+    const list = ["skewb", "square1", "clock"];
     if (type === "rubik")
         return o.a === o.b && o.b === o.c;
     if (type === "pyraminx" || type === "megaminx")

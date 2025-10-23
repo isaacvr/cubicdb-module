@@ -1,10 +1,13 @@
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
+import { randomCSSId } from "./strings";
 
 export function PYRAMINX(): PuzzleInterface {
   const pyra: PuzzleInterface = {
     palette: STANDARD_PALETTE,
     move: () => true,
   };
+
+  const ID = randomCSSId();
 
   type FaceName = "F" | "R" | "L" | "D";
   const faces: Record<FaceName, FaceName[]> = {
@@ -323,8 +326,8 @@ export function PYRAMINX(): PuzzleInterface {
 
     return [
       `<?xml version="1.0" encoding="UTF-8" standalone="no"?>`,
-      `<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 100 88">`,
-      `<style>.c0{fill:#009d54;}.c1{fill:#ffeb3b;}.c2{fill:#dc422f;}.c3{fill:#3d81f6;}</style>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 100 88" class="${ID}">`,
+      `<style>.${ID} .c0{fill:#009d54;}.${ID} .c1{fill:#ffeb3b;}.${ID} .c2{fill:#dc422f;}.${ID} .c3{fill:#3d81f6;}</style>`,
       ...Array.from(classMap.entries()).map(([cls, path]) => {
         return `<g class="${cls}">${path.join("")}</g>`;
       }),

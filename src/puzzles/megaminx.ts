@@ -1,10 +1,13 @@
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
+import { randomCSSId } from "./strings";
 
 export function MEGAMINX(): PuzzleInterface {
   const mega: PuzzleInterface = {
     palette: STANDARD_PALETTE,
     move: () => false,
   };
+
+  const ID = randomCSSId();
 
   type FaceName =
     | "U"
@@ -760,11 +763,11 @@ export function MEGAMINX(): PuzzleInterface {
     });
 
     return [
-      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 150 75"><style>path{stroke:black;stroke-width:0.2;stroke-linecap:square;}.c0{fill:#e6e6e6;}.c1{fill:#dc422f;}.c2{fill:#009d54;}.c3{fill:#8a1bff;}.c4{fill:#ffeb3b;}.c5{fill:#3d81f6;}.c6{fill:#707070;}.c7{fill:#53b1f3;}.c8{fill:#dcd3a5;}.c9{fill:#ed96a1;}.c10{fill:#4ad931;}.c11{fill:#e87000;}.c12,.c13{ alignment-baseline:middle;fill:#191919;text-anchor:middle;}</style>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 150 75" class="${ID}"><style>.${ID} path{stroke:black;stroke-width:0.2;stroke-linecap:square;}.${ID} .c0{fill:#e6e6e6;}.${ID} .c1{fill:#dc422f;}.${ID} .c2{fill:#009d54;}.${ID} .c3{fill:#8a1bff;}.${ID} .c4{fill:#ffeb3b;}.${ID} .c5{fill:#3d81f6;}.${ID} .c6{fill:#707070;}.${ID} .c7{fill:#53b1f3;}.${ID} .c8{fill:#dcd3a5;}.${ID} .c9{fill:#ed96a1;}.${ID} .c10{fill:#4ad931;}.${ID} .c11{fill:#e87000;}.${ID} .c12{ alignment-baseline:middle;fill:#191919;text-anchor:middle;}</style>`,
       ...Array.from(classMap.entries()).map(([cls, path]) => {
         return `<g class="${cls}">${path.join("")}</g>`;
       }),
-      `<text x="38.7" y="34.27" font-size="7.5" class="c12">U</text><text x="38.7" y="60" font-size="7.5" class="c13">F</text> </svg>`,
+      `<text x="38.7" y="34.27" font-size="7.5" class="c12">U</text><text x="38.7" y="60" font-size="7.5" class="c12">F</text> </svg>`,
     ].join("");
   };
 

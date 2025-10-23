@@ -1,5 +1,6 @@
 import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
+import { randomCSSId } from "./strings";
 import { getRoundedPath } from "./utils";
 
 export function SKEWB(): PuzzleInterface {
@@ -7,6 +8,8 @@ export function SKEWB(): PuzzleInterface {
     palette: STANDARD_PALETTE,
     move: () => true,
   };
+
+  const ID = randomCSSId();
 
   type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
   type FaceColor = keyof typeof STANDARD_PALETTE;
@@ -198,8 +201,8 @@ export function SKEWB(): PuzzleInterface {
     drawFace(1, 2, faces.D);
 
     return [
-      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
-      `<style>g{stroke:black;stroke-width:1;}</style>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin" class="${ID}">`,
+      `<style>.${ID} g{stroke:black;stroke-width:1;}</style>`,
       ...Array.from(classMap.entries()).map(([c, paths]) => {
         return `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[c as FaceName]]).toHex(false)}">${paths.join("")}</g>`;
       }),

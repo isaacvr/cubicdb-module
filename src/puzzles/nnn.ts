@@ -1,5 +1,6 @@
 import { Color } from "./color";
 import { PuzzleInterface, STANDARD_PALETTE } from "./constants";
+import { randomCSSId } from "./strings";
 import { svgnum } from "./utils";
 
 export function RUBIK(n: number): PuzzleInterface {
@@ -7,6 +8,8 @@ export function RUBIK(n: number): PuzzleInterface {
     palette: STANDARD_PALETTE,
     move: () => false,
   };
+
+  const ID = randomCSSId();
 
   type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
   type FaceColor = keyof typeof STANDARD_PALETTE;
@@ -316,8 +319,8 @@ export function RUBIK(n: number): PuzzleInterface {
     );
 
     return [
-      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin">`,
-      `<style>rect{rx:${rdx};}</style>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin" class="${ID}">`,
+      `<style>.${ID} rect{rx:${rdx};}</style>`,
       ...Array.from(classMap.entries()).map(
         (v) =>
           `<g fill="${new Color(STANDARD_PALETTE[FACE_COLOR[v[0]]]).toHex(false)}">${v[1].join("")}</g>`,
